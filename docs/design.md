@@ -14,7 +14,25 @@ O que torna Git difícil é que ele é invisível: você digita comandos e não 
 
 É isso que nenhum concorrente faz: o learnGitBranching mostra só o grafo, sem o conteúdo. Aqui você vê **o que** cada commit guarda, não só que ele existe.
 
-## A tela
+## Direção visual
+
+**RPG de vista de cima, estilo 16-bit** (Pokémon GBA, Zelda Minish Cap, Stardew). O jogador já conhece essa linguagem e sobra atenção pra aprender Git. O "8-bit" entra pela trilha chiptune e por um **filtro Game Boy** opcional (4 tons de verde).
+
+| Elemento conhecido | No Repo Vivo |
+|---|---|
+| Andar pela vila em grade | Cada arquivo é uma área da vila (`casas.txt`, `horta.txt`, `praca.txt`) |
+| Professor Carvalho | **Professora Commit**: apresenta o jogo e dá voz ao tutor de IA |
+| Ponto de save | **Pedra do Tempo**: onde se faz commit |
+| Mundo da Luz / Mundo das Trevas (Zelda ALttP) | **Branches**: trocar de branch troca a paleta do mundo, com transição de portal |
+| "Um Pokémon selvagem apareceu!" | **"Um CONFLITO selvagem apareceu!"**: conflito de merge como tela de batalha (manter o meu / o deles / os dois) |
+| Pokédex | **Gitdex**: comandos colecionados |
+| Insígnias de ginásio | Uma insígnia por ato |
+
+O terminal fica embaixo da tela como o grimório do personagem: é onde se digitam os comandos de verdade.
+
+**Ferramentas:** Phaser 4 (MIT) · mapas no Tiled · arte e som do Ninja Adventure Asset Pack (CC0) · sprites próprios no Piskel · referência de UI estilo Pokémon: `devshareacademy/monster-tamer` (MIT).
+
+## A tela (protótipo v0, antes da direção visual acima)
 
 ```
 ┌──────────────────────────┬────────────────────────┐
@@ -65,7 +83,7 @@ Quando o jogador erra ou trava, um tutor recebe o **estado real** (último coman
 - **Motor de Git próprio em TypeScript**, o coração do portfólio: objetos endereçados por hash (blob, tree, commit), index, refs, HEAD, reflog, remoto simulado, merge de 3 vias com detecção de conflito. É puro, sem interface, e coberto por testes.
 - **Parser de comandos** com a sintaxe e as mensagens de erro reais do Git (em PT-BR, com o termo original entre parênteses).
 - **Fases em JSON:** estado inicial, objetivo (um predicado sobre o estado), par de comandos, falas.
-- **Interface:** Vite + TypeScript + React; grafo em SVG; mundo em Canvas (pixel art).
+- **Interface:** Vite + TypeScript + Phaser 4 (mundo, personagens, transições, shaders de paleta); grafo, áreas e terminal em HTML/SVG sobre o canvas.
 - **Tutor:** um endpoint mínimo em Node chamando a Claude API; a chave fica no servidor.
 - **Docker:** um container serve o build estático e o endpoint do tutor; sobe com um comando.
 - **Progresso** salvo no localStorage.

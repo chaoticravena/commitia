@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repo Vivo · protótipo visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e0b1a; --panel:#17132b; --panel2:#1f1a3a; --line:#2e2754; --text:#ece6ff; --dim:#8f86b8;
+  --red:#ff5d73; --green:#5dff9b; --gold:#ffd166; --blue:#6ec3ff; --pink:#ff7ad9; --violet:#a98bff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:radial-gradient(ellipse at top,#1d1640 0%,var(--bg) 60%);color:var(--text);font-family:"JetBrains Mono",monospace}
+.app{display:grid;grid-template-columns:1.25fr 1fr;grid-template-rows:auto 1fr auto;gap:12px;height:100vh;padding:12px;max-width:1500px;margin:0 auto}
+.panel{background:linear-gradient(180deg,var(--panel2),var(--panel));border:2px solid var(--line);border-radius:10px;box-shadow:0 0 0 2px #0006,0 10px 30px #0008;position:relative;overflow:hidden}
+.label{font-family:Silkscreen,monospace;font-size:11px;letter-spacing:1px;color:var(--dim);text-transform:uppercase;padding:8px 12px 0}
+/* missão */
+.mission{grid-column:1/3;display:flex;align-items:center;gap:16px;padding:10px 16px}
+.mission h1{font-family:Silkscreen,monospace;font-size:18px;margin:0;color:var(--gold);text-shadow:0 0 12px #ffd16666}
+.mission .act{font-family:Silkscreen;font-size:11px;color:var(--violet);border:1px solid var(--violet);padding:3px 8px;border-radius:4px}
+.steps{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap}
+.step{font-size:12px;padding:5px 10px;border-radius:20px;background:#0005;border:1px solid var(--line);color:var(--dim);transition:all .4s}
+.step.done{color:#0e0b1a;background:var(--green);border-color:var(--green);box-shadow:0 0 14px #5dff9b88}
+.stars{font-size:18px;letter-spacing:2px}
+/* mundo */
+.world{display:flex;flex-direction:column}
+.world canvas{width:100%;flex:1;image-rendering:pixelated;display:block;min-height:0}
+.toolbar{display:flex;gap:8px;padding:8px 12px;border-top:2px solid var(--line);background:#0004;flex-wrap:wrap}
+.toolbar button{font-family:Silkscreen;font-size:12px;color:var(--text);background:var(--panel2);border:2px solid var(--line);border-radius:6px;padding:7px 10px;cursor:pointer;transition:transform .1s,border-color .2s}
+.toolbar button:hover{border-color:var(--violet);transform:translateY(-2px)}
+.toolbar button:active{transform:translateY(1px)}
+.legend{margin-left:auto;display:flex;gap:12px;align-items:center;font-size:11px;color:var(--dim)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+/* lado direito */
+.right{display:grid;grid-template-rows:1fr auto;gap:12px;min-height:0}
+.graph svg{width:100%;height:100%;display:block}
+.areas{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.area{padding:0 10px 12px;min-height:118px;border-right:2px dashed var(--line)}
+.area:last-child{border-right:0}
+.area .label{padding-left:0}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px;margin:4px 4px 0 0;border-radius:6px;animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
+.chip.mod{background:#ff5d7322;border:1px solid var(--red);color:var(--red)}
+.chip.stg{background:#5dff9b22;border:1px solid var(--green);color:var(--green)}
+.chip.repo{background:#6ec3ff1a;border:1px solid var(--blue);color:var(--blue);display:flex}
+.empty{font-size:11px;color:#5d5585;font-style:italic;margin-top:6px}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+/* terminal */
+.term{grid-column:1/3;height:210px;display:flex;flex-direction:column}
+.out{flex:1;overflow-y:auto;padding:8px 14px;font-size:13px;line-height:1.55}
+.out .cmd{color:var(--text)} .out .cmd::before{content:"❯ ";color:var(--pink)}
+.out .ok{color:var(--green)} .out .err{color:var(--red)} .out .info{color:var(--dim)} .out .y{color:var(--gold)} .out .b{color:var(--blue)}
+.inrow{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:2px solid var(--line);background:#0005}
+.inrow span{color:var(--pink);font-weight:700}
+.inrow input{flex:1;background:transparent;border:0;outline:0;color:var(--text);font:inherit;font-size:14px;caret-color:var(--gold)}
+.hint{font-size:11px;color:var(--dim)}
+.flash{position:fixed;inset:0;background:#fff;pointer-events:none;opacity:0;z-index:50}
+.flash.go{animation:flash .5s ease-out}
+@keyframes flash{0%{opacity:.85}100%{opacity:0}}
+.toast{position:fixed;left:50%;top:70px;transform:translateX(-50%) translateY(-20px);opacity:0;font-family:Silkscreen;font-size:14px;background:var(--gold);color:#1a1230;padding:10px 18px;border-radius:8px;box-shadow:0 0 30px #ffd16688;transition:all .35s;z-index:60}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (max-width:900px){.app{grid-template-columns:1fr;height:auto}.mission,.term{grid-column:1}.world canvas{height:260px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="panel mission">
+    <span class="act">ATO 1</span>
+    <h1>Primeiro save</h1>
+    <div class="steps" id="steps"></div>
+    <div class="stars" id="stars">☆☆☆</div>
+  </div>
+
+  <div class="panel world">
+    <div class="label">o mundo · working directory</div>
+    <canvas id="world" width="240" height="135"></canvas>
+    <div class="toolbar">
+      <button data-act="casa">🏠 construir casa</button>
+      <button data-act="arvore">🌳 plantar árvore</button>
+      <button data-act="ceu">🌅 mudar o céu</button>
+      <button data-act="demolir">💥 demolir</button>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--red)"></i>modificado</span>
+        <span><i class="dot" style="background:var(--green)"></i>no staging</span>
+        <span><i class="dot" style="background:#fff"></i>salvo</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="panel graph">
+      <div class="label">linha do tempo · commits</div>
+      <svg id="graph"></svg>
+    </div>
+    <div class="panel">
+      <div class="areas">
+        <div class="area"><div class="label">modificado</div><div id="a-mod"></div></div>
+        <div class="area"><div class="label">staging</div><div id="a-stg"></div></div>
+        <div class="area"><div class="label">repositório</div><div id="a-repo"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel term">
+    <div class="out" id="out"></div>
+    <div class="inrow"><span>❯</span><input id="cmd" autocomplete="off" spellcheck="false" placeholder="digite um comando git… (ajuda)"><span class="hint">↑ histórico · tab completa</span></div>
+  </div>
+</div>
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ponytail: protótipo visual; o motor de Git de verdade vai ser um módulo TS testado (v0.1)
+const FILES = ["ceu.txt", "casas.txt", "arvores.txt"];
+const COLORS = ["vermelha", "azul", "amarela", "verde", "roxa", "rosa"];
+const SKIES = ["dia", "por-do-sol", "noite"];
+const LANES = ["#ffd166", "#6ec3ff", "#ff7ad9", "#5dff9b", "#a98bff"];
+
+const clone = o => JSON.parse(JSON.stringify(o));
+const empty = () => ({ "ceu.txt": "dia", "casas.txt": [], "arvores.txt": [] });
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+let work = empty(), index = empty();
+let commits = {}, order = [], branches = {}, head = { branch: "main" }, laneOf = { main: 0 };
+let history = [], hIdx = 0, cmdCount = 0, seed = 7;
+
+const headId = () => head.branch ? branches[head.branch] : head.detached;
+const headSnap = () => headId() ? commits[headId()].snap : empty();
+const hash = () => { seed = (seed * 9301 + 49297) % 233280; return (seed / 233280).toString(16).slice(2, 9).padEnd(7, "a"); };
+
+// ---------- missão ----------
+const STEPS = [
+  { t: "construa algo", ok: () => !same(work, empty()) || order.length },
+  { t: "git add", ok: () => !same(index, empty()) || order.length },
+  { t: "git commit", ok: () => order.length >= 1 },
+  { t: "mude e salve de novo", ok: () => order.length >= 2 },
+  { t: "volte no tempo", ok: () => !!head.detached },
+];
+let doneSteps = 0;
+function renderSteps() {
+  const el = document.getElementById("steps");
+  el.innerHTML = STEPS.map((s, i) => `<span class="step ${s.ok() ? "done" : ""}">${s.ok() ? "✓" : i + 1} ${s.t}</span>`).join("");
+  const n = STEPS.filter(s => s.ok()).length;
+  if (n > doneSteps && n === STEPS.length) {
+    const par = 7, stars = cmdCount <= par ? 3 : cmdCount <= par + 3 ? 2 : 1;
+    document.getElementById("stars").textContent = "★".repeat(stars) + "☆".repeat(3 - stars);
+    toast(`Ato 1 completo! ${"★".repeat(stars)}  (${cmdCount} comandos, par ${par})`);
+  }
+  doneSteps = n;
+}
+
+// ---------- status por item (o coração visual) ----------
+function itemState(file, i) {
+  const w = work[file][i], s = index[file][i], h = headSnap()[file][i];
+  if (w !== undefined && !same(w, s)) return "mod";
+  if (w !== undefined && !same(s, h)) return "stg";
+  return "ok";
+}
+const ghosts = file => { // existem no index/HEAD mas sumiram do mundo
+  const out = [];
+  const ref = index[file].length >= headSnap()[file].length ? index[file] : headSnap()[file];
+  for (let i = work[file].length; i < ref.length; i++) out.push({ i, v: ref[i], st: i < index[file].length ? "mod" : "stg" });
+  return out;
+};
+const changed = (a, b) => FILES.filter(f => !same(a[f], b[f]));
+
+// ---------- mundo (pixel art procedural) ----------
+const cv = document.getElementById("world"), g = cv.getContext("2d");
+const W = cv.width, H = cv.height, GROUND = 92;
+let t = 0, rewind = 0, particles = [], smoke = [];
+const STARS = Array.from({ length: 40 }, (_, i) => [(i * 53) % W, (i * 31) % 70, i % 3]);
+const HOUSE = { vermelha: "#e8505b", azul: "#4f8cff", amarela: "#ffc93c", verde: "#4cc77b", roxa: "#9b6bff", rosa: "#ff79c6" };
+const px = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, w, h); };
+
+function sky(kind) {
+  const grads = { "dia": ["#5aa9f0", "#bfe6ff"], "por-do-sol": ["#5b3a8c", "#ff8c5a"], "noite": ["#070b24", "#24245e"] }[kind];
+  const gr = g.createLinearGradient(0, 0, 0, GROUND); gr.addColorStop(0, grads[0]); gr.addColorStop(1, grads[1]);
+  g.fillStyle = gr; g.fillRect(0, 0, W, GROUND);
+  if (kind === "noite") {
+    STARS.forEach(([x, y, k]) => px(x, y, 1, 1, (Math.sin(t / 20 + x) > .3 || k) ? "#fff" : "#fff6"));
+    g.fillStyle = "#fdf6d833"; g.beginPath(); g.arc(190, 18, 12, 0, 7); g.fill(); // lua crescente
+    g.fillStyle = "#fdf6d8"; g.beginPath(); g.arc(190, 18, 7, 0, 7); g.fill();
+    g.fillStyle = "#0c1130"; g.beginPath(); g.arc(194, 15, 6, 0, 7); g.fill();
+  } else {
+    const sy = kind === "dia" ? 16 : 52, sc = kind === "dia" ? "#fff3a8" : "#ffd06b";
+    g.fillStyle = sc + "55"; g.beginPath(); g.arc(190, sy, 14, 0, 7); g.fill();
+    g.fillStyle = sc; g.beginPath(); g.arc(190, sy, 8, 0, 7); g.fill();
+    for (let c = 0; c < 3; c++) { const cx = ((t / (8 + c * 3) + c * 90) % (W + 40)) - 30, cy = 12 + c * 14; px(cx, cy, 22, 5, "#ffffffcc"); px(cx + 5, cy - 3, 12, 4, "#ffffffcc"); }
+  }
+}
+function hills(kind) {
+  const c = { "dia": ["#7fc98a", "#5fae6f"], "por-do-sol": ["#a0657c", "#7d4c66"], "noite": ["#1d2a4a", "#16203a"] }[kind];
+  for (let x = 0; x < W; x++) { px(x, GROUND - 18 - Math.sin(x / 22) * 8, 1, 40, c[0]); px(x, GROUND - 8 - Math.sin(x / 13 + 2) * 4, 1, 20, c[1]); }
+  const gc = { "dia": ["#56b35f", "#4aa153"], "por-do-sol": ["#6f8a4a", "#617a40"], "noite": ["#1f3d34", "#19322b"] }[kind];
+  px(0, GROUND, W, H - GROUND, gc[0]);
+  for (let i = 0; i < 160; i++) px((i * 37) % W, GROUND + 2 + (i * 17) % (H - GROUND - 3), 1, 1, gc[1]);
+  // rio
+  for (let x = 0; x < W; x++) px(x, H - 12 + Math.round(Math.sin(x / 9 + t / 25)), 1, 12, kind === "noite" ? "#22346e" : "#3e8fd6");
+  for (let x = 0; x < W; x += 7) px((x + t / 4) % W, H - 8, 3, 1, "#ffffff66");
+}
+function outline(x, y, w, h, st) {
+  if (st === "ok") return;
+  const blink = st === "mod" ? (Math.sin(t / 6) > 0 ? 1 : .35) : 1;
+  g.globalAlpha = blink; g.strokeStyle = st === "mod" ? "#ff5d73" : "#5dff9b"; g.lineWidth = 1;
+  g.setLineDash(st === "mod" ? [2, 2] : []); g.strokeRect(x - 1.5, y - 1.5, w + 3, h + 3); g.setLineDash([]); g.globalAlpha = 1;
+}
+function house(i, color, st, ghost, night) {
+  const x = 10 + i * 36, y = GROUND - 22, c = HOUSE[color];
+  g.globalAlpha = ghost ? .3 + .15 * Math.sin(t / 5) : 1;
+  px(x, y + 8, 24, 16, c); px(x, y + 8, 24, 2, "#0002");
+  for (let r = 0; r < 9; r++) px(x - 2 + r, y + 8 - r, 28 - r * 2, 1, "#6b3b2a"); // telhado
+  px(x + 17, y - 2, 4, 7, "#5a2f22"); // chaminé
+  px(x + 10, y + 15, 5, 9, "#4a2b1c");
+  const win = night ? (Math.sin(t / 30 + i) > -.6 ? "#ffe17a" : "#d9b84f") : "#bfe6ff";
+  px(x + 3, y + 12, 4, 4, win); px(x + 18, y + 12, 4, 4, win);
+  if (night && !ghost) { g.fillStyle = "#ffe17a22"; g.fillRect(x - 1, y + 10, 26, 10); }
+  g.globalAlpha = 1;
+  if (!ghost && t % 14 === i % 14) smoke.push({ x: x + 19, y: y - 3, life: 60 });
+  outline(x - 2, y - 1, 28, 25, ghost ? "mod" : st);
+}
+function tree(i, st, ghost) {
+  const x = 32 + i * 36, y = GROUND + 4, sway = Math.round(Math.sin(t / 18 + i)); // primeiro plano, entre as casas
+  if (!ghost) { g.fillStyle = "#0003"; g.fillRect(x - 1, y + 18, 12, 2); }
+  g.globalAlpha = ghost ? .3 : 1;
+  px(x + 3, y + 10, 3, 9, "#6b4226");
+  px(x + sway, y, 9, 11, "#2f8f46"); px(x - 1 + sway, y + 3, 11, 6, "#2f8f46"); px(x + 2 + sway, y + 1, 3, 3, "#4fbf63");
+  g.globalAlpha = 1;
+  outline(x - 2, y - 1, 13, 21, ghost ? "mod" : st);
+}
+
+function draw() {
+  t++;
+  const kind = work["ceu.txt"];
+  sky(kind); hills(kind);
+  work["casas.txt"].forEach((c, i) => house(i, c, itemState("casas.txt", i), false, kind === "noite"));
+  ghosts("casas.txt").forEach(({ i, v }) => house(i, v, "mod", true, kind === "noite"));
+  work["arvores.txt"].forEach((_, i) => tree(i, itemState("arvores.txt", i), false));
+  ghosts("arvores.txt").forEach(({ i }) => tree(i, "mod", true));
+  if (!same(work["ceu.txt"], index["ceu.txt"]) || !same(index["ceu.txt"], headSnap()["ceu.txt"])) {
+    const st = !same(work["ceu.txt"], index["ceu.txt"]) ? "mod" : "stg";
+    g.globalAlpha = st === "mod" ? (Math.sin(t / 6) > 0 ? 1 : .35) : 1;
+    g.strokeStyle = st === "mod" ? "#ff5d73" : "#5dff9b"; g.setLineDash(st === "mod" ? [3, 3] : []); g.strokeRect(1.5, 1.5, W - 3, GROUND - 22); g.setLineDash([]); g.globalAlpha = 1;
+  }
+  smoke = smoke.filter(s => (s.life--, s.y -= .25, s.x += Math.sin(s.life / 8) * .2, s.life > 0));
+  smoke.forEach(s => px(s.x, s.y, 2, 2, `rgba(220,220,230,${s.life / 120})`));
+  particles = particles.filter(p => (p.life--, p.x += p.vx, p.y += p.vy, p.vy += .03, p.life > 0));
+  particles.forEach(p => px(p.x, p.y, 2, 2, p.c));
+  if (head.detached && !rewind) { // passado: tom sépia + vinheta
+    g.fillStyle = "#c08a3a22"; g.fillRect(0, 0, W, H);
+    g.fillStyle = "#ffd166"; g.font = "8px Silkscreen"; g.fillText("◷ PASSADO · " + head.detached, 6, 10);
+  }
+  if (rewind > 0) { // efeito VHS de rebobinar
+    rewind--;
+    const img = g.getImageData(0, 0, W, H);
+    for (let y = 0; y < H; y += 2) g.putImageData(img, Math.round(Math.sin(y + rewind) * 6 * rewind / 30), 0, 0, y, W, 1);
+    g.fillStyle = `rgba(255,209,102,${rewind / 70})`; g.fillRect(0, 0, W, H);
+    g.fillStyle = "#fff"; g.font = "10px Silkscreen"; g.fillText("◀◀ REBOBINANDO", 70, 70);
+  }
+  requestAnimationFrame(draw);
+}
+
+// ---------- grafo ----------
+function renderGraph() {
+  const svg = document.getElementById("graph"), r = svg.getBoundingClientRect();
+  const step = 54, x0 = 40, y0 = 70, laneH = 56;
+  const pos = id => ({ x: x0 + order.indexOf(id) * step, y: y0 + laneOf[commits[id].lane] * laneH });
+  const shift = Math.max(0, x0 + order.length * step - r.width + 40);
+  let s = `<defs><filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g transform="translate(${-shift},0)">`;
+  order.forEach(id => commits[id].parents.forEach(p => {
+    const a = pos(p), b = pos(id), col = LANES[laneOf[commits[id].lane] % LANES.length];
+    s += `<path d="M${a.x},${a.y} C${a.x + 30},${a.y} ${b.x - 30},${b.y} ${b.x},${b.y}" stroke="${col}" stroke-width="3" fill="none" opacity=".7"/>`;
+  }));
+  order.forEach(id => {
+    const { x, y } = pos(id), col = LANES[laneOf[commits[id].lane] % LANES.length], isHead = id === headId();
+    s += `<g style="animation:pop .4s"><circle cx="${x}" cy="${y}" r="${isHead ? 13 : 10}" fill="${col}" filter="url(#glow)" opacity="${isHead ? 1 : .85}"/>`;
+    if (isHead) s += `<circle cx="${x}" cy="${y}" r="18" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 3"><animateTransform attributeName="transform" type="rotate" from="0 ${x} ${y}" to="360 ${x} ${y}" dur="6s" repeatCount="indefinite"/></circle>`;
+    s += `<text x="${x}" y="${y + 30}" fill="#8f86b8" font-size="10" text-anchor="middle" font-family="JetBrains Mono">${id}</text><title>${commits[id].msg}</title></g>`;
+  });
+  Object.entries(branches).forEach(([b, id], k) => {
+    if (!id) return;
+    const { x, y } = pos(id), col = LANES[laneOf[b] % LANES.length], on = head.branch === b, w = b.length * 7 + 16;
+    const yy = y - 32 - (Object.entries(branches).filter(([b2, i2], k2) => i2 === id && k2 < k).length) * 18;
+    s += `<rect x="${x - w / 2}" y="${yy - 11}" width="${w}" height="16" rx="8" fill="${on ? col : "#0e0b1a"}" stroke="${col}"/><text x="${x}" y="${yy + 1}" fill="${on ? "#0e0b1a" : col}" font-size="10" font-weight="700" text-anchor="middle" font-family="JetBrains Mono">${on ? "HEAD→" : ""}${b}</text>`;
+  });
+  if (!order.length) s += `<text x="${r.width / 2}" y="${r.height / 2}" fill="#5d5585" font-size="12" text-anchor="middle" font-family="JetBrains Mono">nenhum commit ainda · a história começa no primeiro save</text>`;
+  svg.innerHTML = s + "</g>";
+}
+
+// ---------- três áreas ----------
+function renderAreas() {
+  const mod = changed(work, index), stg = changed(index, headSnap());
+  document.getElementById("a-mod").innerHTML = mod.map(f => `<span class="chip mod">✎ ${f}</span>`).join("") || `<div class="empty">nada modificado</div>`;
+  document.getElementById("a-stg").innerHTML = stg.map(f => `<span class="chip stg">✓ ${f}</span>`).join("") || `<div class="empty">vazio · use git add</div>`;
+  const h = headId();
+  document.getElementById("a-repo").innerHTML = h ? `<span class="chip repo">● ${h}</span><div class="empty" style="font-style:normal;color:#8f86b8">"${commits[h].msg}"</div>` : `<div class="empty">sem commits</div>`;
+}
+const render = () => { renderAreas(); renderGraph(); renderSteps(); };
+
+// ---------- ações no mundo ----------
+document.querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
+  if (head.detached) return print("err", "você está no passado (HEAD destacado). Volte com: git switch main");
+  const a = b.dataset.act, c = work["casas.txt"];
+  if (a === "casa" && c.length < 6) c.push(COLORS[(c.length + order.length) % COLORS.length]);
+  if (a === "arvore" && work["arvores.txt"].length < 6) work["arvores.txt"].push("carvalho");
+  if (a === "ceu") work["ceu.txt"] = SKIES[(SKIES.indexOf(work["ceu.txt"]) + 1) % 3];
+  if (a === "demolir") c.length ? c.pop() : work["arvores.txt"].pop();
+  burst(W / 2, GROUND - 10, "#ffd166", 14);
+  render();
+});
+
+// ---------- terminal ----------
+const out = document.getElementById("out"), input = document.getElementById("cmd");
+function print(cls, txt) { const d = document.createElement("div"); d.className = cls; d.innerHTML = txt; out.appendChild(d); out.scrollTop = out.scrollHeight; }
+function burst(x, y, c, n) { for (let i = 0; i < n; i++) particles.push({ x, y, vx: (Math.random() - .5) * 2.5, vy: -Math.random() * 2, life: 40 + Math.random() * 20, c }); }
+function toast(msg) { const el = document.getElementById("toast"); el.textContent = msg; el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 3200); }
+function flash() { const f = document.getElementById("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
+
+const CMDS = {
+  ajuda() {
+    print("info", "comandos neste ato: <span class='y'>git status</span> · <span class='y'>git add &lt;arquivo&gt;|.</span> · <span class='y'>git commit -m \"msg\"</span> · <span class='y'>git log</span> · <span class='y'>git restore &lt;arquivo&gt;</span> · <span class='y'>git switch --detach &lt;hash&gt;</span> · <span class='y'>git switch main</span> · clear");
+  },
+  status() {
+    const mod = changed(work, index), stg = changed(index, headSnap());
+    print("info", head.branch ? `Na branch <span class="b">${head.branch}</span>` : `<span class="y">HEAD destacado em ${head.detached}</span>`);
+    if (stg.length) { print("info", "Mudanças prontas pro commit:"); stg.forEach(f => print("ok", "&nbsp;&nbsp;&nbsp;&nbsp;modificado: " + f)); }
+    if (mod.length) { print("info", "Mudanças fora do staging:"); mod.forEach(f => print("err", "&nbsp;&nbsp;&nbsp;&nbsp;modificado: " + f)); }
+    if (!stg.length && !mod.length) print("ok", "nada pra commitar, tudo limpo ✨");
+  },
+  add(args) {
+    const fs = args[0] === "." ? FILES : args.filter(f => FILES.includes(f));
+    if (!args.length) return print("err", "Nada especificado, nada adicionado. Tente: git add casas.txt (ou git add .)");
+    if (!fs.length) return print("err", `fatal: o caminho '${args[0]}' não corresponde a nenhum arquivo`);
+    fs.forEach(f => index[f] = clone(work[f]));
+    burst(W / 2, GROUND, "#5dff9b", 20);
+  },
+  restore(args) {
+    if (args[0] === "--staged") { args.slice(1).forEach(f => FILES.includes(f) && (index[f] = clone(headSnap()[f]))); return; }
+    const fs = args[0] === "." ? FILES : args.filter(f => FILES.includes(f));
+    fs.forEach(f => work[f] = clone(index[f]));
+    burst(W / 2, GROUND, "#ff5d73", 16);
+  },
+  commit(args, raw) {
+    const m = raw.match(/-m\s+["'](.+?)["']/);
+    if (!m) return print("err", 'use: git commit -m "mensagem"');
+    if (!changed(index, headSnap()).length) return print("err", "nada no staging pra commitar (use git add)");
+    if (head.detached) return print("err", "no protótipo, commits no passado ficam pro Ato 3 (branches) 😉");
+    const id = hash();
+    commits[id] = { snap: clone(index), msg: m[1], parents: headId() ? [headId()] : [], lane: head.branch };
+    order.push(id); branches[head.branch] = id;
+    flash(); burst(W / 2, GROUND / 2, "#ffffff", 30);
+    print("ok", `[${head.branch} <span class="y">${id}</span>] ${m[1]}`);
+    if (order.length === 1) toast("📸 Primeiro commit! Esse momento está salvo pra sempre.");
+  },
+  log() {
+    if (!headId()) return print("err", "fatal: sua branch atual 'main' ainda não tem commits");
+    let id = headId();
+    while (id) { print("y", `commit ${id}${id === headId() ? ' <span class="b">(HEAD)</span>' : ""}`); print("info", "&nbsp;&nbsp;&nbsp;&nbsp;" + commits[id].msg); id = commits[id].parents[0]; }
+  },
+  switch(args) {
+    if (changed(work, index).length || changed(index, headSnap()).length) return print("err", "erro: suas mudanças locais seriam sobrescritas. Faça commit (ou restore) antes de viajar.");
+    let target, br = null;
+    if (args[0] === "--detach") { target = args[1]; if (!commits[target]) return print("err", `fatal: commit inválido: '${target}'`); }
+    else { br = args[0]; if (!(br in branches)) return print("err", `fatal: branch inválida: '${br}'`); target = branches[br]; }
+    head = br ? { branch: br } : { detached: target };
+    work = clone(commits[target].snap); index = clone(commits[target].snap);
+    rewind = 34;
+    print(br ? "ok" : "y", br ? `Mudou para a branch '${br}' · de volta ao presente` : `HEAD agora está em ${target} · você está vendo o mundo como ele era`);
+  },
+  checkout(args) { CMDS.switch(commits[args[0]] ? ["--detach", args[0]] : args); },
+};
+
+function run(raw) {
+  raw = raw.trim(); if (!raw) return;
+  print("cmd", raw.replace(/</g, "&lt;"));
+  history.push(raw); hIdx = history.length;
+  if (raw === "clear") { out.innerHTML = ""; return; }
+  if (raw === "ajuda" || raw === "help") return CMDS.ajuda();
+  const [git, sub, ...args] = raw.split(/\s+/);
+  if (git !== "git") return print("err", `comando não encontrado: ${git} · aqui todo comando começa com <span class="y">git</span>`);
+  if (!CMDS[sub]) return print("err", `git: '${sub}' não é um comando git (ainda). Veja: ajuda`);
+  cmdCount++;
+  CMDS[sub](args, raw);
+  render();
+}
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") { run(input.value); input.value = ""; }
+  if (e.key === "ArrowUp" && hIdx > 0) { input.value = history[--hIdx]; e.preventDefault(); }
+  if (e.key === "ArrowDown") { input.value = history[++hIdx] ?? ""; hIdx = Math.min(hIdx, history.length); }
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const words = ["git status", "git add .", "git add casas.txt", "git commit -m \"\"", "git log", "git switch main", "git switch --detach ", "git restore ."];
+    const m = words.find(w => w.startsWith(input.value) && w !== input.value); if (m) input.value = m;
+  }
+});
+document.addEventListener("keydown", e => { if (e.target !== input && e.key.length === 1) input.focus(); });
+
+print("y", "🏝️  Você chegou a uma ilha vazia. Este lugar é um repositório Git: cada arquivo é uma parte do mundo.");
+print("info", "Construa algo com os botões, depois salve o momento com <span class='y'>git add</span> e <span class='y'>git commit</span>. Digite <span class='y'>ajuda</span> pra ver os comandos.");
+render(); draw();
+window.addEventListener("resize", renderGraph);
+</script>
+</body>
+</html>

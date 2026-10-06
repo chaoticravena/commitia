@@ -58,8 +58,9 @@ export class VillageScene extends Phaser.Scene {
     // praça: Pedra do Tempo, torre do relógio e postes
     this.place("pedra-do-tempo", 14, 13, 2);
     this.place("torre-relogio", 22, 19, 2);
-    this.place("poste-lanterna", 10, 12);
-    this.place("poste-lanterna", 18, 11);
+    // postes: praça, beira da rua dos lotes, vãos entre casas e entrada da estrada
+    [[10, 12], [18, 11], [5, 11], [24, 11], [15, 8], [22, 8], [13, 18], [16, 18]]
+      .forEach(([x, y]) => this.place("poste-lanterna", x, y));
 
     // vegetação
     [[5, 14], [25, 13], [8, 18], [19, 19], [3, 12]].forEach(([x, y]) => this.place("arbusto", x, y));

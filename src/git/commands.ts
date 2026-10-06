@@ -1,5 +1,5 @@
 // Terminal: transforma uma linha digitada em chamada do motor e formata a saída como o Git real.
-import { GitError, add, commit, diff, init, log, status, type Workspace } from "./repo.ts";
+import { GitError, add, commit, diff, init, log, restore, status, switchTo, type Workspace } from "./repo.ts";
 
 export type Kind = "info" | "ok" | "err" | "hash" | "add" | "del" | "head";
 export type Line = { text: string; kind: Kind };
@@ -68,6 +68,29 @@ const HANDLERS: Record<string, Handler> = {
         ? [L(`${short(hash)}${tag} ${commit.message}`, "hash")]
         : [L(`commit ${hash}${tag}`, "hash"), L(`    ${commit.message}`), L("")];
     });
+  },
+
+  switch(ws, args) {
+    const detach = args.includes("--detach") || args.includes("-d");
+    const target = args.find(a => !a.startsWith("-"));
+    if (!target) throw new GitError("use: git switch <branch>  ou  git switch --detach <commit>");
+    const head = switchTo(ws, target, detach);
+    return "branch" in head
+      ? [L(`Mudou para a branch '${head.branch}'`, "ok")]
+      : [L(`HEAD agora está em ${short(head.detached)} · você está vendo o mundo como ele era`, "head"),
+         L("Você está em 'HEAD destacado': pode olhar à vontade. Pra voltar: git switch main")];
+  },
+
+  // checkout antigo: aceita commit (vira --detach) ou branch
+  checkout(ws, args) {
+    const target = args.find(a => !a.startsWith("-"));
+    if (!target) throw new GitError("use: git checkout <branch|commit>");
+    return HANDLERS.switch(ws, ws.repo && target in ws.repo.branches ? [target] : ["--detach", target]);
+  },
+
+  restore(ws, args) {
+    restore(ws, args.filter(a => !a.startsWith("-")), args.includes("--staged"));
+    return [];
   },
 
   diff(ws, args) {

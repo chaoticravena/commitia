@@ -85,6 +85,46 @@ test("diffLines: LCS mínimo", () => {
   assert.deepEqual(diffLines("", "novo"), [{ op: "+", text: "novo" }]);
 });
 
+test("viagem no tempo: switch --detach mostra o passado e switch main volta", () => {
+  const ws = world();
+  git(ws, "git init"); git(ws, "git add ."); git(ws, 'git commit -m "uma casa"');
+  const first = headCommit(ws.repo!)!;
+  ws.work["casas.txt"] = "casa vermelha\ncasa azul";
+  git(ws, "git add ."); git(ws, 'git commit -m "duas casas"');
+
+  const r = git(ws, `git switch --detach ${first.slice(0, 7)}`);
+  assert.ok(r.ok, r.lines.map(l => l.text).join("\n"));
+  assert.equal(ws.work["casas.txt"], "casa vermelha");
+  assert.deepEqual(ws.repo!.head, { detached: first });
+
+  git(ws, "git switch main");
+  assert.equal(ws.work["casas.txt"], "casa vermelha\ncasa azul");
+  assert.match(ws.repo!.reflog[0].action, /para main/);
+});
+
+test("switch recusa com mudanças pendentes e com commit sem --detach", () => {
+  const ws = world();
+  git(ws, "git init"); git(ws, "git add ."); git(ws, 'git commit -m "a"');
+  const h = headCommit(ws.repo!)!.slice(0, 7);
+  assert.match(text(ws, `git switch ${h}`), /git switch --detach/);
+  ws.work["ceu.txt"] = "noite";
+  assert.match(text(ws, `git switch --detach ${h}`), /seriam sobrescritas/);
+  assert.ok(git(ws, `git checkout ${h}`).ok === false);
+});
+
+test("restore descarta do working dir; restore --staged tira do staging", () => {
+  const ws = world();
+  git(ws, "git init"); git(ws, "git add ."); git(ws, 'git commit -m "a"');
+  ws.work["ceu.txt"] = "noite";
+  git(ws, "git add ceu.txt");
+  git(ws, "git restore --staged ceu.txt");
+  assert.deepEqual(status(ws).staged, []);
+  assert.equal(ws.work["ceu.txt"], "noite"); // --staged não mexe no mundo
+  git(ws, "git restore ceu.txt");
+  assert.equal(ws.work["ceu.txt"], "dia");
+  assert.match(text(ws, "git status"), /limpa/);
+});
+
 test("comando desconhecido e fora do git", () => {
   assert.match(text(world(), "git voar"), /não é um comando git/);
   assert.match(text(world(), "ls"), /comando não encontrado/);

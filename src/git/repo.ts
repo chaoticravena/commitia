@@ -166,6 +166,57 @@ export function log(ws: Workspace, from?: string): { hash: Hash; commit: Commit 
   return out;
 }
 
+// ---------- viagem: switch e restore ----------
+
+function checkoutTree(ws: Workspace, repo: Repo, commit: Hash) {
+  const tree = treeOf(repo, commit);
+  repo.index = { ...tree };
+  ws.work = Object.fromEntries(Object.entries(tree).map(([p, h]) => [p, blobContent(repo, h)]));
+}
+
+function isDirty(ws: Workspace): boolean {
+  const s = status(ws);
+  return s.staged.length > 0 || s.unstaged.length > 0;
+}
+
+// git switch <branch> | git switch --detach <commit>
+export function switchTo(ws: Workspace, target: string, detach: boolean): Head {
+  const repo = requireRepo(ws);
+  if (!detach && !(target in repo.branches)) {
+    if (repo.objects.has(target) || target.length >= 4) throw new GitError(`fatal: era esperada uma branch, recebido o commit '${target}'\ndica: pra visitar um commit use git switch --detach ${target}`);
+    throw new GitError(`fatal: branch inválida: '${target}'`);
+  }
+  const hash = detach ? resolveCommit(repo, target) : repo.branches[target];
+  if (isDirty(ws)) throw new GitError("erro: suas mudanças locais seriam sobrescritas pelo switch.\nFaça commit ou descarte (git restore) antes de trocar.");
+  const from = headCommit(repo);
+  repo.head = detach ? { detached: hash } : { branch: target };
+  checkoutTree(ws, repo, hash);
+  repo.reflog.unshift({ hash, action: `switch: de ${from ? from.slice(0, 7) : "?"} para ${detach ? hash.slice(0, 7) : target}` });
+  return repo.head;
+}
+
+// git restore <arquivo> (descarta do working dir) | git restore --staged <arquivo> (tira do staging)
+export function restore(ws: Workspace, paths: string[], staged: boolean): string[] {
+  const repo = requireRepo(ws);
+  if (!paths.length) throw new GitError("fatal: você precisa dizer qual arquivo restaurar");
+  const head = treeOf(repo, headCommit(repo));
+  const all = [...new Set([...Object.keys(ws.work), ...Object.keys(repo.index), ...Object.keys(head)])];
+  const targets = paths.includes(".") ? all : paths;
+  for (const p of targets) {
+    if (!(p in ws.work) && !(p in repo.index) && !(p in head)) throw new GitError(`erro: o caminho '${p}' não corresponde a nenhum arquivo conhecido pelo git`);
+  }
+  for (const p of targets) {
+    if (staged) {
+      if (p in head) repo.index[p] = head[p]; else delete repo.index[p];
+    } else if (p in repo.index) {
+      ws.work[p] = blobContent(repo, repo.index[p]);
+    } else if (!paths.includes(".")) {
+      throw new GitError(`erro: '${p}' não está rastreado; não há versão salva pra restaurar`);
+    }
+  }
+  return targets;
+}
+
 // ---------- diff ----------
 
 export type DiffLine = { op: " " | "-" | "+"; text: string };

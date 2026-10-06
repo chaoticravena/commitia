@@ -116,6 +116,20 @@ def main_only(cell: Image.Image) -> Image.Image:
     return out
 
 
+def similarity(a: Image.Image, b: Image.Image) -> int:
+    pa, pb = a.load(), b.load()
+    return sum(1 for y in range(a.height) for x in range(a.width)
+               if pa[x, y][3] and pb[x, y][3] and sum(abs(pa[x, y][i] - pb[x, y][i]) for i in range(3)) < 60)
+
+
+def same_side(row: list[Image.Image]) -> list[Image.Image]:
+    """Põe todos os quadros olhando pro mesmo lado: cada um fica na orientação que mais se parece com o
+    1º quadro; se a maioria precisou virar, era o 1º que estava do lado errado e vira tudo de volta."""
+    flips = [similarity(ImageOps.mirror(c), row[0]) > similarity(c, row[0]) for c in row]
+    out = [ImageOps.mirror(c) if f else c for c, f in zip(row, flips)]
+    return [ImageOps.mirror(c) for c in out] if sum(flips) * 2 > len(row) else out
+
+
 def sheet(img: Image.Image, p=10.24, mirror_right=False, swap_sides=False, side_col3=False, main=False) -> Image.Image:
     img = img.convert("RGB")
     hx, hy = edges(img)
@@ -133,6 +147,8 @@ def sheet(img: Image.Image, p=10.24, mirror_right=False, swap_sides=False, side_
             cells[r][c] = main_only(align(big)) if main else align(big)
     if side_col3:  # a IA às vezes desenha o 3º quadro da lateral de frente: repete o quadro parado
         cells[2][2] = cells[2][0]
+    if mirror_right:  # a IA mistura o lado do rosto dentro da mesma linha: desvira os quadros da minoria
+        cells[2] = same_side(cells[2])
     if mirror_right:  # a IA às vezes repete o mesmo lado nas duas linhas laterais
         cells[3] = [ImageOps.mirror(c) for c in cells[2]]
     if swap_sides:  # linhas de esquerda e direita vieram trocadas
@@ -156,6 +172,9 @@ def selftest():
     box = cell.getbbox()
     assert box[2] - box[0] == 10 and box[3] == 32, box  # 10 px de largura, pés na última linha
     assert cell.getpixel((box[0], 31))[:3] == (40, 30, 50) and cell.getpixel((box[0] + 5, 27))[:3] == (240, 180, 200)
+    a = Image.new("RGBA", (32, 32)); a.paste((40, 30, 50, 255), (4, 10, 12, 30))  # bloco à esquerda
+    fixed = same_side([a, a, ImageOps.mirror(a), a])
+    assert all(f.tobytes() == a.tobytes() for f in fixed), "quadro espelhado não foi desvirado"
     print("selftest ok")
 
 

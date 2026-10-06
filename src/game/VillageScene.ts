@@ -4,8 +4,6 @@ import { LOTS, MAP_H, MAP_W, ROAD, T, autotile, dirtGrid } from "./map.ts";
 type Dir = "down" | "up" | "left" | "right";
 const DIR_ROW: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // linha na folha 4x4 de caminhada
 const STEP_MS = 180;
-// chão: pacote recolorido na paleta Soft Pastel (?pal=orig mostra as cores originais do Ninja Adventure)
-const TILES = new URLSearchParams(location.search).get("pal") === "orig" ? "/assets/tiles" : "/assets-pastel/tiles";
 const SPRITES = "/assets/sprites"; // arte própria, já na paleta
 
 const IMAGES = [
@@ -26,7 +24,7 @@ export class VillageScene extends Phaser.Scene {
   constructor() { super("village"); }
 
   preload() {
-    this.load.image("floor", `${TILES}/TilesetFloor.png`);
+    this.load.image("ground", `${SPRITES}/ground.png`); // gerado por art/tools/build_ground.py
     for (const name of IMAGES) this.load.image(name, `${SPRITES}/${name}.png`);
     this.load.spritesheet("helena", `${SPRITES}/helena-andando.png`, { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("professora", `${SPRITES}/professora-andando.png`, { frameWidth: 32, frameHeight: 32 });
@@ -34,7 +32,7 @@ export class VillageScene extends Phaser.Scene {
 
   create() {
     const map = this.make.tilemap({ data: autotile(dirtGrid()), tileWidth: T, tileHeight: T });
-    map.createLayer(0, map.addTilesetImage("floor")!, 0, 0);
+    map.createLayer(0, map.addTilesetImage("ground")!, 0, 0);
     this.solid = Array.from({ length: MAP_H }, () => new Array<boolean>(MAP_W).fill(false));
 
     // moldura de árvores sobrepostas (a vila é uma clareira na mata)

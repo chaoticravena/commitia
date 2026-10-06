@@ -4,15 +4,17 @@ export const T = 16; // tamanho do tile em pixels
 export const MAP_W = 30;
 export const MAP_H = 20;
 
-// Índices no TilesetFloor.png (22 colunas). Terra sobre grama.
+// Índices no ground.png (16 colunas), gerado por art/tools/build_ground.py. Terra sobre grama.
 const DIRT = {
-  tl: 154, t: 155, tr: 156,
-  l: 176, c: 177, r: 178,
-  bl: 198, b: 199, br: 200,
+  tl: 0, t: 1, tr: 2,
+  l: 16, c: 17, r: 18,
+  bl: 32, b: 33, br: 34,
   // canto interno: terra em volta, grama sobrando num canto
-  grassBR: 181, grassBL: 182, grassTR: 203, grassTL: 204,
+  grassBR: 3, grassBL: 4, grassTR: 19, grassTL: 20,
 };
-const GRASS = [264, 264, 264, 264, 265, 266, 267, 268]; // mais lisa que com tufos
+const range = (from: number, n: number) => Array.from({ length: n }, (_, i) => from + i);
+const GRASS = [...range(48, 16), ...range(48, 16), ...range(64, 8)]; // 1 em 5 com florzinhas
+const DIRT_FILL = range(80, 16);
 
 export type Rect = { x: number; y: number; w: number; h: number };
 
@@ -54,8 +56,8 @@ export function autotile(dirt: boolean[][], seed = 1): number[][] {
     if (!at(x - 1, y - 1)) return DIRT.grassTL;
     if (!at(x + 1, y + 1)) return DIRT.grassBR;
     if (!at(x - 1, y + 1)) return DIRT.grassBL;
-    return DIRT.c;
+    return DIRT_FILL[Math.floor(rand() * DIRT_FILL.length)];
   }));
 }
 
-export const TILES = { DIRT, GRASS };
+export const TILES = { DIRT, GRASS, DIRT_FILL };

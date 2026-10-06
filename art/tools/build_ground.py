@@ -35,8 +35,13 @@ def e(u: int) -> int:
     return 4 + round(1.2 * math.sin(2 * math.pi * u / 16) + 0.8 * math.sin(2 * math.pi * 2 * u / 16 + 1))
 
 
-def is_dirt(role: str, x: int, y: int) -> bool:
-    top, bottom, left, right = y >= e(x), y <= 15 - e(x), x >= e(y), x <= 15 - e(y)
+def e_water(u: int) -> int:
+    """Margem do rio: quase reta (a divisa ondulada da terra parecia nuvem na água)."""
+    return 3 + round(0.7 * math.sin(2 * math.pi * u / 16))
+
+
+def is_dirt(role: str, x: int, y: int, edge=e) -> bool:
+    top, bottom, left, right = y >= edge(x), y <= 15 - edge(x), x >= edge(y), x <= 15 - edge(y)
     return {
         "c": True,
         "t": top, "b": bottom, "l": left, "r": right,
@@ -103,7 +108,9 @@ def dirt_tile(seed: int) -> Image.Image:
 
 
 # Água nas cores da textura do Gemini: base, ondinhas claras com uma linha funda embaixo, brilhos.
-WATER = {"base": (140, 220, 216), "light": (181, 236, 223), "deep": (112, 194, 196), "foam": (232, 248, 242), "spark": (252, 252, 245)}
+WATER = {"base": (140, 214, 212), "light": (181, 232, 223), "deep": (112, 190, 196), "shadow": (96, 168, 180),
+         "foam": (206, 240, 232), "spark": (252, 252, 245)}
+BANK = [(122, 100, 84), (150, 122, 98)]  # barranco de terra na margem de cima: escuro em cima, claro embaixo
 
 
 def water_tile(seed: int, frame: int) -> Image.Image:
@@ -111,8 +118,8 @@ def water_tile(seed: int, frame: int) -> Image.Image:
     rnd = random.Random(seed)
     tile = Image.new("RGBA", (T, T), (*WATER["base"], 255))
     px = tile.load()
-    for _ in range(rnd.randint(2, 3)):
-        n = rnd.randint(3, 5)
+    for _ in range(rnd.randint(1, 2)):
+        n = rnd.randint(4, 7)
         x, y = rnd.randrange(0, T - n - 1) + frame, rnd.randrange(1, T - 1)
         for i in range(n):
             px[x + i, y] = (*WATER["light"], 255)
@@ -124,17 +131,22 @@ def water_tile(seed: int, frame: int) -> Image.Image:
 
 
 def water_edge(role: str) -> Image.Image:
-    """Dentro da máscara: água com espuma na margem; logo fora: linha escura da grama; o resto transparente."""
-    fill = water_tile(0, 0).load()
+    """Margem do rio. Onde a grama fica EM CIMA da água: barranco de terra (2 px) e sombra funda (2 px),
+    pra água parecer mais baixa que o chão. Nas outras margens: só 1 px de espuma discreta.
+    Fora da água: 1 px escuro na grama; o resto transparente (a grama da camada de baixo aparece).
+    O miolo das bordas é água lisa: ondinhas repetidas em todo tile de borda formavam um padrão."""
     out = Image.new("RGBA", (T, T), (0, 0, 0, 0))
-    mask = [[is_dirt(role, x, y) for x in range(T)] for y in range(T)]
-    near = lambda x, y: any(0 <= x + dx < T and 0 <= y + dy < T and mask[y + dy][x + dx] != mask[y][x]
-                            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+    mask = [[is_dirt(role, x, y, e_water) for x in range(T)] for y in range(T)]
+    inside = lambda x, y: 0 <= x < T and 0 <= y < T and mask[y][x]
     for y in range(T):
         for x in range(T):
             if mask[y][x]:
-                out.putpixel((x, y), (*WATER["foam"], 255) if near(x, y) else fill[x, y])
-            elif near(x, y):
+                above = next((d for d in (1, 2, 3, 4) if 0 <= y - d and not mask[y - d][x]), None)
+                side = any(0 <= x + dx < T and 0 <= y + dy < T and not mask[y + dy][x + dx] for dx, dy in ((1, 0), (-1, 0), (0, 1)))
+                c = (BANK[0] if above == 1 else BANK[1] if above == 2 else WATER["shadow"] if above in (3, 4)
+                     else WATER["foam"] if side else WATER["base"])
+                out.putpixel((x, y), (*c, 255))
+            elif any(inside(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
                 out.putpixel((x, y), (*GRASS["deep"], 255))
     return out
 
@@ -194,6 +206,8 @@ def selftest():
     assert a.tobytes() != b.tobytes() and a.getchannel("A").getextrema() == (255, 255), "quadros da água"
     edge = water_edge("t")
     assert edge.getpixel((8, 0))[3] == 0 and edge.getpixel((8, 15))[3] == 255, "margem de cima"
+    top = next(y for y in range(T) if edge.getpixel((8, y))[3] == 255 and edge.getpixel((8, y))[:3] != GRASS["deep"])
+    assert edge.getpixel((8, top))[:3] == BANK[0], "barranco faltando na margem de cima"
     print("selftest ok")
 
 

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { addAmbient } from "./ambient.ts";
 import { LOTS, MAP_H, MAP_W, ROAD, T, autotile, dirtGrid } from "./map.ts";
 
 type Dir = "down" | "up" | "left" | "right";
@@ -14,6 +15,8 @@ const IMAGES = [
 export class VillageScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
   private buddy!: Phaser.GameObjects.Image;
+  private dirt = dirtGrid();
+  private ambient!: ReturnType<typeof addAmbient>;
   private tile = { x: 15, y: 17 };
   private facing: Dir = "up";
   private moving = false;
@@ -37,12 +40,14 @@ export class VillageScene extends Phaser.Scene {
 
     // moldura de árvores sobrepostas (a vila é uma clareira na mata)
     const trees = ["arvore-grande", "arvore-grande", "arvore-florida"];
+    const placed: { img: Phaser.GameObjects.Image; flowering: boolean }[] = [];
+    const tree = (x: number, bottom: number) => { const key = trees[k++ % 3]; placed.push({ img: this.place(key, x, bottom), flowering: key === "arvore-florida" }); };
     let k = 0;
     for (let x = -1; x < MAP_W; x += 2) {
-      this.place(trees[k++ % 3], x, 1 + (x % 4 === 1 ? 1 : 0));
-      if (x + 3 <= ROAD.x || x >= ROAD.x + ROAD.w) this.place(trees[k++ % 3], x, MAP_H - 1 + (x % 4 === 1 ? 0 : 1));
+      tree(x, 1 + (x % 4 === 1 ? 1 : 0));
+      if (x + 3 <= ROAD.x || x >= ROAD.x + ROAD.w) tree(x, MAP_H - 1 + (x % 4 === 1 ? 0 : 1));
     }
-    for (let y = 3; y < MAP_H - 1; y += 2) { this.place(trees[k++ % 3], -1, y); this.place(trees[k++ % 3], MAP_W - 2, y); }
+    for (let y = 3; y < MAP_H - 1; y += 2) { tree(-1, y); tree(MAP_W - 2, y); }
 
     // casas nos lotes (no jogo isso vem de casas.txt)
     const casas = ["casa-pedra-rosa", "casa-madeira", null, "casa-padaria"];
@@ -78,6 +83,8 @@ export class VillageScene extends Phaser.Scene {
       this.buddy.setDepth(this.buddy.y);
       this.buddy.setDisplayOrigin(this.buddy.width / 2, this.buddy.height + this.buddy.getData("bob"));
     });
+
+    this.ambient = addAmbient(this, placed, new Phaser.Geom.Rectangle(2 * T, 3 * T, (MAP_W - 4) * T, (MAP_H - 6) * T));
 
     this.cameras.main.setBounds(0, 0, MAP_W * T, MAP_H * T).startFollow(this.player, true).setRoundPixels(true);
     // zoom inteiro que mostra pelo menos 320x180 pixels do mundo
@@ -118,6 +125,7 @@ export class VillageScene extends Phaser.Scene {
     const prev = this.tile;
     this.tile = { x: nx, y: ny };
     this.tweens.add({ targets: this.player, x: nx * T + 8, y: (ny + 1) * T, duration: STEP_MS, onComplete: () => { this.moving = false; } });
+    if (this.dirt[ny][nx]) this.ambient.stepDust(nx * T + 8, (ny + 1) * T);
     // o Gitinho vai pra onde você estava, como um seguidor de Pokémon
     this.tweens.add({ targets: this.buddy, x: prev.x * T + 8, y: (prev.y + 1) * T, duration: STEP_MS });
   }

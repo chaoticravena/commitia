@@ -7,6 +7,7 @@
 4. Força cada pixel pra cor mais próxima da paleta (OKLab).
 
 Uso: python art/tools/clean_ai.py <entrada> <saida.png> --width 32
+     python art/tools/clean_ai.py folha.png saida.png --width 128 --sheet   (4 colunas de 32px)
      python art/tools/clean_ai.py --selftest
 Gera também <saida>.preview.png ampliado 8x pra conferir.
 """
@@ -41,7 +42,9 @@ def nearest(rgb, pal, cache):
     return cache[rgb]
 
 
-def clean(img: Image.Image, width: int, colors: int = 32) -> Image.Image:
+def clean(img: Image.Image, width: int, colors: int = 32, whole: bool = False) -> Image.Image:
+    """whole=True: usa a imagem inteira em vez de recortar no objeto (folhas de animação,
+    pra cada quadro continuar alinhado na sua célula da grade)."""
     img = img.convert("RGB")
     W, H = img.size
     raw = img.load()
@@ -55,9 +58,12 @@ def clean(img: Image.Image, width: int, colors: int = 32) -> Image.Image:
             if not mask[y][x]:
                 fp[x, y] = (255, 0, 255)
     src = flat.quantize(colors=colors + 1, method=Image.Quantize.MEDIANCUT).convert("RGB").load()
-    xs = [x for y in range(H) for x in range(W) if mask[y][x]]
-    ys = [y for y in range(H) for x in range(W) if mask[y][x]]
-    x0, x1, y0, y1 = min(xs), max(xs) + 1, min(ys), max(ys) + 1
+    if whole:
+        x0, x1, y0, y1 = 0, W, 0, H
+    else:
+        xs = [x for y in range(H) for x in range(W) if mask[y][x]]
+        ys = [y for y in range(H) for x in range(W) if mask[y][x]]
+        x0, x1, y0, y1 = min(xs), max(xs) + 1, min(ys), max(ys) + 1
     bw = (x1 - x0) / width  # tamanho de um "pixel" do jogo na imagem de origem
     height = max(1, round((y1 - y0) / bw))
     pal, cache = palette_colors(), {}
@@ -100,12 +106,13 @@ if __name__ == "__main__":
     ap.add_argument("saida", nargs="?")
     ap.add_argument("--width", type=int, default=32, help="largura final em pixels do jogo (16 = 1 tile)")
     ap.add_argument("--colors", type=int, default=32, help="cores principais antes de mapear na paleta")
+    ap.add_argument("--sheet", action="store_true", help="folha de animação: usa a imagem inteira (grade alinhada)")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         selftest()
     else:
-        out = clean(Image.open(a.entrada), a.width, a.colors)
+        out = clean(Image.open(a.entrada), a.width, a.colors, whole=a.sheet)
         Path(a.saida).parent.mkdir(parents=True, exist_ok=True)
         out.save(a.saida)
         out.resize((out.width * 8, out.height * 8), Image.NEAREST).save(Path(a.saida).with_suffix(".preview.png"))

@@ -42,7 +42,8 @@ export class VillageScene extends Phaser.Scene {
     this.solid = Array.from({ length: MAP_H }, () => new Array<boolean>(MAP_W).fill(false));
 
     // moldura de árvores sobrepostas (a vila é uma clareira na mata)
-    const trees = ["arvore-grande", "arvore-pinheiro", "arvore-florida", "arvore-grande", "arvore-lavanda", "arvore-pinheiro"];
+    // tamanho ímpar: as fileiras de cima e de baixo se alternam no mesmo contador, então cada uma passa por todos os tipos
+    const trees = ["arvore-grande", "arvore-pinheiro", "arvore-florida", "arvore-lavanda", "arvore-grande"];
     const placed: { img: Phaser.GameObjects.Image; flowering: boolean }[] = [];
     const tree = (x: number, bottom: number) => {
       const key = trees[k++ % trees.length];

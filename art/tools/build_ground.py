@@ -1,8 +1,8 @@
-"""Monta o tileset do chão (public/assets/sprites/ground.png) a partir das texturas do Gemini.
+"""Monta o tileset do chão (public/assets/sprites/ground.png).
 
-As texturas viram pixels reais na paleta (clean_ai), e as bordas do autotile (grama encontrando
-terra) são desenhadas por código com uma divisa levemente ondulada + linha de sombra dos dois lados.
-Assim as bordas sempre encaixam, o que a IA não garante.
+Grama e terra são geradas por código (as texturas do Gemini eram lisas e ficavam sem vida), e as
+bordas do autotile (grama encontrando terra) têm uma divisa levemente ondulada + linha de sombra dos
+dois lados. Assim as bordas sempre encaixam, o que a IA não garante.
 
 Layout (16 colunas de 16 px), o mesmo que src/game/map.ts usa:
   linha 0: tl t tr grassBR grassBL      linha 3: 16 variações de grama
@@ -17,8 +17,6 @@ from pathlib import Path
 
 from PIL import Image
 
-from clean_ai import clean
-from recolor import load_ramps, oklab
 
 ROOT = Path(__file__).resolve().parents[2]
 T = 16
@@ -46,22 +44,6 @@ def is_dirt(role: str, x: int, y: int) -> bool:
         "grassBR": not (not bottom and not right), "grassBL": not (not bottom and not left),
         "grassTR": not (not top and not right), "grassTL": not (not top and not left),
     }[role]
-
-
-def to_ramp(img: Image.Image, ramp, shift: int, only=None) -> Image.Image:
-    """Leva os pixels pra uma rampa da paleta pela luminosidade, deslocando `shift` tons.
-    only: se dado, só mexe nos pixels que já são dessas cores (ex. a grama, sem tocar nas flores)."""
-    out = img.copy()
-    px = out.load()
-    for y in range(out.height):
-        for x in range(out.width):
-            r, g, b, a = px[x, y]
-            if a == 0 or (only is not None and (r, g, b) not in only):
-                continue
-            L = oklab((r, g, b))[0]
-            i = min(range(len(ramp)), key=lambda k: abs(oklab(ramp[k])[0] - L))
-            px[x, y] = (*ramp[max(0, min(len(ramp) - 1, i + shift))], 255)
-    return out
 
 
 # Grama feita por código: a textura do Gemini era lisa e ficava cinza na paleta. Aqui cada tile tem
@@ -93,23 +75,37 @@ def grass_tile(seed: int, flowers: bool) -> Image.Image:
     return tile
 
 
+# Terra no mesmo esquema: base quente, pontinhos, pedrinhas com sombra embaixo e rachadinhas.
+DIRT = {"base": (190, 154, 124), "dark": (166, 130, 104), "deep": (132, 100, 84), "light": (212, 180, 148), "stone": (228, 212, 192), "stone_dark": (150, 128, 116)}
+PEBBLE = [(0, 0, "stone"), (1, 0, "stone"), (0, 1, "stone_dark"), (1, 1, "stone_dark")]
+CRACK = [(0, 0), (1, 0), (2, 1), (3, 1)]
+
+
+def dirt_tile(seed: int) -> Image.Image:
+    rnd = random.Random(seed)
+    tile = Image.new("RGBA", (T, T), (*DIRT["base"], 255))
+    px = tile.load()
+    for _ in range(rnd.randint(6, 10)):
+        px[rnd.randrange(T), rnd.randrange(T)] = (*DIRT["light"], 255)
+    for _ in range(rnd.randint(6, 10)):
+        px[rnd.randrange(T), rnd.randrange(T)] = (*DIRT["dark"], 255)
+    for _ in range(rnd.randint(0, 2)):
+        x, y = rnd.randrange(0, T - 2), rnd.randrange(0, T - 2)
+        for dx, dy, c in PEBBLE:
+            px[x + dx, y + dy] = (*DIRT[c], 255)
+    if rnd.random() < 0.3:
+        x, y = rnd.randrange(0, T - 4), rnd.randrange(0, T - 2)
+        for dx, dy in CRACK:
+            px[x + dx, y + dy] = (*DIRT["deep"], 255)
+    return tile
+
+
 def grass_texture(flowers: bool) -> Image.Image:
     """128x128 de tiles independentes, no mesmo formato que build() recorta."""
     tex = Image.new("RGBA", (128, 128))
     for i in range(64):
         tex.paste(grass_tile(i + (1000 if flowers else 0), flowers), ((i % 8) * T, (i // 8) * T))
     return tex
-
-
-def texture(name: str) -> Image.Image:
-    """Textura do Gemini -> pixels reais na paleta, recortada num período (128 px) que emenda."""
-    src = Image.open(ROOT / f"art/inbox/{name}.jpeg")
-    native = clean(src, 256, whole=True, palette=True).crop((0, 0, 128, 128))  # o "pixel" dessas texturas tem 4 px
-    ramps = load_ramps()
-    if name.startswith("grama"):  # menta brilhante caía no tom mais claro: um tom abaixo fica menos lavado
-        g = ramps["Grama / folhas"]
-        return to_ramp(native, g, -1, only=set(g))
-    return to_ramp(native, ramps["Madeira / terra"], 0)  # terra na rampa de madeira, não na das flores
 
 
 def edge_tile(role: str, grass: Image.Image, dirt: Image.Image, rim_g, rim_d) -> Image.Image:
@@ -127,9 +123,11 @@ def edge_tile(role: str, grass: Image.Image, dirt: Image.Image, rim_g, rim_d) ->
 
 
 def build() -> Image.Image:
-    ramps = load_ramps()
-    rim_g, rim_d = GRASS["deep"], ramps["Madeira / terra"][1]  # divisa um tom abaixo de cada chão
-    grass, flowers, dirt = grass_texture(False), grass_texture(True), texture("terra-textura")
+    rim_g, rim_d = GRASS["deep"], DIRT["deep"]  # divisa um tom abaixo de cada chão
+    grass, flowers = grass_texture(False), grass_texture(True)
+    dirt = Image.new("RGBA", (128, 128))
+    for i in range(64):
+        dirt.paste(dirt_tile(2000 + i), ((i % 8) * T, (i // 8) * T))
     sheet = Image.new("RGBA", (COLS * T, 6 * T))
     for role, (c, r) in ROLES.items():
         sheet.paste(edge_tile(role, grass.crop((0, 0, T, T)), dirt.crop((0, 0, T, T)), rim_g, rim_d), (c * T, r * T))

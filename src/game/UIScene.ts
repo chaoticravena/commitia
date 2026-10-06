@@ -1,155 +1,129 @@
 import Phaser from "phaser";
+import { loadSettings } from "./TitleScene.ts";
 
-// Camada de interface por cima da vila: caixa de diálogo estilo Pokémon, escolhas e avisos.
-// Roda em 640x360 sem zoom (a vila usa zoom 2), então o texto fica nítido em 2x.
+// Caixa de diálogo por cima da vila, no mesmo estilo dos botões do título: painel creme com borda
+// de madeira, retrato num quadrinho, plaquinha com o nome, texto letra a letra com "blip".
+// Mesmo zoom inteiro da vila, então os pixels da interface têm o tamanho dos do mundo.
 
-const S = 2; // escala da arte da interface
-const FONT = { fontFamily: "NormalFont", fontSize: "16px", color: "#3b2a3a" };
-const CHAR_MS = 22;
+const FONT = { fontFamily: '"Press Start 2P", monospace', fontSize: "8px", color: "#443c53" };
+const CHAR_MS = 28;
+const BOX_W = 300, BOX_H = 56;
+const C = { wood: 0xe0b98f, woodDark: 0x5e4a4a, cream: 0xfcf4ee, frame: 0xf2e6d0 };
 
-type Speaker = { name: string; face: string };
-export const SPEAKERS: Record<string, Speaker> = {
-  professora: { name: "Profa. Commit", face: "face-professora" },
-  voce: { name: "Você", face: "face-voce" },
-  placa: { name: "Placa", face: "" },
+export const SPEAKERS = {
+  professora: { pt: "Profa. Commit", en: "Prof. Commit", face: "professora-retrato" },
 };
+export type Speaker = keyof typeof SPEAKERS;
 
 export class UIScene extends Phaser.Scene {
   private box!: Phaser.GameObjects.Container;
   private text!: Phaser.GameObjects.Text;
-  private nameText!: Phaser.GameObjects.Text;
+  private name!: Phaser.GameObjects.Text;
   private face!: Phaser.GameObjects.Image;
-  private arrow!: Phaser.GameObjects.Text;
+  private arrow!: Phaser.GameObjects.Image;
   private queue: string[] = [];
-  private typing?: Phaser.Time.TimerEvent;
   private full = "";
-  private choices: string[] = [];
-  private choiceIdx = 0;
-  private onChoose?: (i: number | null) => void;
+  private shown = 0;
+  private typing?: Phaser.Time.TimerEvent;
   private onDone?: () => void;
-  private banner!: Phaser.GameObjects.Text;
-  private toastText!: Phaser.GameObjects.Text;
 
-  constructor() { super({ key: "ui", active: false }); }
+  constructor() { super("ui"); }
 
-  get open() { return this.box.visible; }
+  get open() { return this.box?.visible ?? false; }
 
   preload() {
-    this.load.image("dialog", "assets/ui/DialogBoxFaceset.png");
-    this.load.image("face-professora", "assets/chars/OldWoman/Faceset.png");
-    this.load.image("face-voce", "assets/chars/Boy/Faceset.png");
-    this.load.audio("blip", "assets/audio/blip.wav");
-    this.load.audio("accept", "assets/audio/accept.wav");
+    const v = import.meta.env.VITE_BUILD ?? "dev";
+    this.load.image("professora-retrato", `assets/sprites/professora-retrato.png?v=${v}`);
+    this.load.audio("blip", `assets/audio/blip.wav?v=${v}`);
   }
 
   create() {
-    const W = this.scale.width, H = this.scale.height;
-    const bg = this.add.image(0, 0, "dialog").setOrigin(0).setScale(S);
-    this.face = this.add.image(5 * S + 19 * S, 12 * S + 19 * S, "face-professora").setScale(S);
-    this.nameText = this.add.text(8 * S, 0, "", { ...FONT, fontSize: "14px", color: "#fff4e0" });
-    this.text = this.add.text(52 * S, 13 * S, "", { ...FONT, wordWrap: { width: 238 * S }, lineSpacing: 4 });
-    this.arrow = this.add.text(288 * S, 44 * S, "▼", { ...FONT, fontSize: "12px" });
-    this.tweens.add({ targets: this.arrow, y: "+=4", yoyo: true, repeat: -1, duration: 350 });
-    this.box = this.add.container((W - 300 * S) / 2, H - 58 * S - 6, [bg, this.face, this.nameText, this.text, this.arrow]).setVisible(false);
+    const g = this.add.graphics();
+    // painel: contorno escuro de cantos "cortados", miolo creme, faixa de madeira por dentro
+    g.fillStyle(C.woodDark).fillRect(1, 0, BOX_W - 2, BOX_H).fillRect(0, 1, BOX_W, BOX_H - 2);
+    g.fillStyle(C.wood).fillRect(1, 1, BOX_W - 2, BOX_H - 2);
+    g.fillStyle(C.cream).fillRect(3, 3, BOX_W - 6, BOX_H - 6);
+    // quadro do retrato
+    g.fillStyle(C.woodDark).fillRect(6, 6, 46, BOX_H - 12);
+    g.fillStyle(C.frame).fillRect(7, 7, 44, BOX_H - 14);
+    // plaquinha do nome, saindo por cima do painel
+    const tag = this.add.graphics();
+    this.face = this.add.image(29, BOX_H - 7, "professora-retrato").setOrigin(0.5, 1);
+    this.name = this.add.text(10, -10, "", { ...FONT, color: "#fcf4ee" });
+    this.text = this.add.text(58, 9, "", { ...FONT, wordWrap: { width: BOX_W - 68 }, lineSpacing: 5 });
+    // setinha "continua" desenhada em pixels (a fonte não tem ▼)
+    if (!this.textures.exists("ui-arrow")) {
+      const a = this.make.graphics({}, false).fillStyle(C.woodDark).fillRect(0, 0, 5, 1).fillRect(1, 1, 3, 1).fillRect(2, 2, 1, 1);
+      a.generateTexture("ui-arrow", 5, 3); a.destroy();
+    }
+    this.arrow = this.add.image(BOX_W - 10, BOX_H - 8, "ui-arrow").setVisible(false);
+    this.time.addEvent({ delay: 400, loop: true, callback: () => this.arrow.setY(this.arrow.y === BOX_H - 8 ? BOX_H - 7 : BOX_H - 8) });
+    this.box = this.add.container(0, 0, [g, tag, this.face, this.name, this.text, this.arrow]).setVisible(false);
+    this.box.setData("tag", tag);
 
-    this.banner = this.add.text(10, 8, "", { ...FONT, fontSize: "14px", color: "#ffd166", backgroundColor: "#1b1730cc", padding: { x: 8, y: 4 } }).setVisible(false);
-    this.toastText = this.add.text(W / 2, 40, "", { ...FONT, fontSize: "16px", color: "#1b1230", backgroundColor: "#ffd166", padding: { x: 12, y: 6 } }).setOrigin(0.5).setAlpha(0);
-
-    const kb = this.input.keyboard!;
-    kb.on("keydown", (e: KeyboardEvent) => {
-      if (!this.open) return;
-      if (this.choices.length && !this.typing) {
-        if (e.key === "ArrowUp" || e.key === "w") this.moveChoice(-1);
-        else if (e.key === "ArrowDown" || e.key === "s") this.moveChoice(1);
-        else if (e.key === "Escape") this.pick(null);
-        else if (e.key === " " || e.key === "Enter" || e.key === "e") this.pick(this.choiceIdx);
-        return;
-      }
-      if (e.key === " " || e.key === "Enter" || e.key === "e" || e.key === "Escape") this.advance();
-    });
+    this.layout();
+    this.scale.on("resize", this.layout, this);
+    this.events.once("shutdown", () => this.scale.off("resize", this.layout, this));
+    this.input.on("pointerdown", () => { if (this.open) this.advance(); });
   }
 
-  // Fala em sequência; cada string é uma "página". onDone roda depois da última.
-  say(who: keyof typeof SPEAKERS, lines: string[], onDone?: () => void) {
+  // mesmo zoom inteiro da vila; caixa centralizada embaixo
+  private layout() {
+    const z = Math.max(1, Math.floor(Math.min(this.scale.width / 320, this.scale.height / 180)));
+    this.cameras.main.setZoom(z).setOrigin(0, 0).setRoundPixels(true);
+    const W = Math.floor(this.scale.width / z), H = Math.floor(this.scale.height / z);
+    this.box.setPosition(Math.round((W - BOX_W) / 2), H - BOX_H - 6);
+  }
+
+  // Fala em páginas; Espaço/Enter/clique avança (ou completa a página que está sendo digitada).
+  say(who: Speaker, lines: string[], onDone?: () => void) {
     const sp = SPEAKERS[who];
-    this.nameText.setText(sp.name);
-    this.face.setVisible(!!sp.face);
-    if (sp.face) this.face.setTexture(sp.face);
-    this.queue = [...lines];
+    this.name.setText(sp[loadSettings().lang]);
+    const tag = this.box.getData("tag") as Phaser.GameObjects.Graphics;
+    const w = this.name.width + 10;
+    tag.clear().fillStyle(C.woodDark).fillRect(5, -14, w + 2, 13).fillStyle(0xa87d63).fillRect(6, -13, w, 11);
+    this.face.setTexture(sp.face);
+    // páginas de no máximo 3 linhas: quebra as falas longas onde o texto já quebraria
+    this.queue = lines.flatMap(line => {
+      const rows = this.text.getWrappedText(line);
+      return Array.from({ length: Math.ceil(rows.length / 3) }, (_, i) => rows.slice(i * 3, i * 3 + 3).join("\n"));
+    });
     this.onDone = onDone;
-    this.choices = [];
     this.box.setVisible(true);
     this.next();
   }
 
-  // Pergunta com opções (setas + Espaço). onChoose recebe o índice, ou null se cancelar.
-  ask(who: keyof typeof SPEAKERS, question: string, options: string[], onChoose: (i: number | null) => void) {
-    this.say(who, [question]);
-    this.choices = options;
-    this.choiceIdx = 0;
-    this.onChoose = onChoose;
+  advance() {
+    if (this.typing) return this.finish();
+    this.next();
   }
 
   private next() {
     const page = this.queue.shift();
-    if (page === undefined) { this.close(); this.onDone?.(); return; }
+    if (page === undefined) {
+      this.box.setVisible(false);
+      const done = this.onDone; this.onDone = undefined;
+      return done?.();
+    }
     this.full = page;
+    this.shown = 0;
     this.text.setText("");
     this.arrow.setVisible(false);
-    let i = 0;
-    this.typing?.remove();
+    const sfx = loadSettings().sfx;
     this.typing = this.time.addEvent({
-      delay: CHAR_MS, repeat: page.length - 1,
-      callback: () => {
-        i++;
-        this.text.setText(page.slice(0, i));
-        if (i % 3 === 0 && page[i - 1] !== " ") this.sound.play("blip", { volume: 0.25 });
-        if (i >= page.length) this.finishTyping();
+      delay: CHAR_MS, repeat: page.length - 1, callback: () => {
+        this.shown++;
+        this.text.setText(page.slice(0, this.shown));
+        if (sfx && this.shown % 3 === 0 && page[this.shown - 1] !== " ") this.sound.play("blip", { volume: 0.2 });
+        if (this.shown >= page.length) this.finish();
       },
     });
   }
 
-  private finishTyping() {
+  private finish() {
     this.typing?.remove();
     this.typing = undefined;
     this.text.setText(this.full);
-    if (this.choices.length) this.renderChoices(); else this.arrow.setVisible(true);
-  }
-
-  private advance() {
-    if (this.typing) { this.finishTyping(); return; }
-    this.sound.play("accept", { volume: 0.3 });
-    this.next();
-  }
-
-  private renderChoices() {
-    this.text.setText(this.full + "\n" + this.choices.map((c, i) => `${i === this.choiceIdx ? "▶" : "  "} ${c}`).join("   "));
-  }
-
-  private moveChoice(d: number) {
-    this.choiceIdx = (this.choiceIdx + d + this.choices.length) % this.choices.length;
-    this.sound.play("blip", { volume: 0.3 });
-    this.renderChoices();
-  }
-
-  private pick(i: number | null) {
-    const cb = this.onChoose;
-    this.choices = [];
-    this.onChoose = undefined;
-    this.sound.play("accept", { volume: 0.3 });
-    this.close();
-    cb?.(i);
-  }
-
-  close() { this.box.setVisible(false); this.typing?.remove(); this.typing = undefined; }
-
-  setBanner(text: string | null) { this.banner.setText(text ?? "").setVisible(!!text); }
-
-  toast(msg: string) {
-    this.toastText.setText(msg).setAlpha(0).setY(30);
-    this.tweens.chain({ targets: this.toastText, tweens: [
-      { alpha: 1, y: 40, duration: 250, ease: "Back.Out" },
-      { alpha: 0, duration: 400, delay: 2600 },
-    ] });
+    this.arrow.setVisible(true);
   }
 }

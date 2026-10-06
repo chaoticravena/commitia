@@ -2,6 +2,7 @@
 // que a cena do Phaser e a interface HTML escutam.
 import { run, type Result } from "../git/commands.ts";
 import { blobContent, headCommit, treeOf, type Files, type Workspace } from "../git/repo.ts";
+import type { Progress } from "./act1.ts";
 
 export type GameEvent =
   | { type: "world" } // o mundo mudou (construiu, plantou, demoliu)
@@ -11,6 +12,7 @@ export type GameEvent =
 class Store extends EventTarget {
   ws: Workspace = { work: {}, repo: null };
   history: string[] = [];
+  progress: Progress = { talked: false, visitedPast: false };
 
   emit(e: GameEvent) { this.dispatchEvent(new CustomEvent("e", { detail: e })); }
   on(fn: (e: GameEvent) => void) { this.addEventListener("e", ev => fn((ev as CustomEvent<GameEvent>).detail)); }

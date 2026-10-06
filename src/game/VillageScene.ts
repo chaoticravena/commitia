@@ -1,11 +1,16 @@
 import Phaser from "phaser";
 import { addAmbient, addWaterSparkles } from "./ambient.ts";
 import { playMusic } from "./music.ts";
+import { professora } from "./act1.ts";
+import { store } from "./store.ts";
+import { loadSettings } from "./TitleScene.ts";
+import type { UIScene } from "./UIScene.ts";
 import { BRIDGE, LOTS, MAP_H, MAP_W, RIVER_H, RIVER_Y, ROAD, T, TILES, WATER_FRAME_B, WATER_SET, autotile, dirtGrid, riverGrid } from "./map.ts";
 
 type Dir = "down" | "up" | "left" | "right";
 const DIR_ROW: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // linha na folha 4x4 de caminhada
 const STEP_MS = 180;
+const PROF = { x: 19, y: 14 }; // tile da Professora Commit
 const SPRITES = "assets/sprites"; // arte própria
 // ?v= muda a cada build: o navegador baixa a arte nova em vez de mostrar a do cache
 const png = (name: string) => `${SPRITES}/${name}.png?v=${import.meta.env.VITE_BUILD ?? "dev"}`;
@@ -33,6 +38,7 @@ export class VillageScene extends Phaser.Scene {
   private moving = false;
   private solid: boolean[][] = [];
   private keys!: Record<Dir, Phaser.Input.Keyboard.Key[]>;
+  private prof!: Phaser.GameObjects.Sprite;
   private queued: Dir | null = null; // toque rápido = um passo, mesmo se a tecla soltar antes do próximo frame
 
   constructor() { super("village"); }
@@ -127,13 +133,14 @@ export class VillageScene extends Phaser.Scene {
     [[11, 25], [25, 25]].forEach(([x, y]) => this.place("capim-alto", x, y, 0, 0));
 
     // Professora Commit
-    const prof = this.add.sprite(19 * T + 8, 14 * T + T, "professora", 0).setOrigin(0.5, 1).setDepth(15 * T);
+    const prof = this.prof = this.add.sprite(PROF.x * T + 8, (PROF.y + 1) * T, "professora", 0).setOrigin(0.5, 1).setDepth(15 * T);
     this.shadow(19 * T + 8, 15 * T - 1, 12);
     this.solid[14][19] = true;
     // vida parada: respira (sobe 1 px de vez em quando) e olha em volta; se você chega perto, olha pra você
     let breath = 0;
     this.time.addEvent({ delay: 900, loop: true, callback: () => prof.setY(15 * T - (breath ^= 1)) });
     this.time.addEvent({ delay: 2600, loop: true, callback: () => {
+      if (this.ui.open) return; // conversando: continua olhando pra você
       const dx = this.player.x - prof.x, dy = this.player.y - prof.y;
       const look: Dir = Math.hypot(dx, dy) < 3 * T
         ? (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up")
@@ -184,6 +191,9 @@ export class VillageScene extends Phaser.Scene {
       left: [kb.addKey(K.LEFT), kb.addKey(K.A)], right: [kb.addKey(K.RIGHT), kb.addKey(K.D)],
     };
     for (const [dir, ks] of Object.entries(this.keys)) ks.forEach(key => key.on("down", () => { this.queued = dir as Dir; }));
+    // Espaço, Enter ou E: conversar (ou avançar a fala)
+    [K.SPACE, K.ENTER, K.E].forEach(k => kb.addKey(k).on("down", () => this.interact()));
+    if (!this.scene.isActive("ui")) this.scene.launch("ui");
   }
 
   // Põe um sprite com a base na linha `bottom` (em tiles), a partir da coluna x, e marca `solidRows` linhas da base como sólidas.
@@ -259,7 +269,22 @@ export class VillageScene extends Phaser.Scene {
     return "glow";
   }
 
+  private get ui() { return this.scene.get("ui") as UIScene; }
+
+  private interact() {
+    const ui = this.ui;
+    if (ui.open) return ui.advance();
+    if (this.moving) return;
+    const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[this.facing];
+    if (this.tile.x + d[0] !== PROF.x || this.tile.y + d[1] !== PROF.y) return;
+    // ela vira pra você (direção oposta à sua)
+    const back: Record<Dir, Dir> = { up: "down", down: "up", left: "right", right: "left" };
+    this.prof.setFrame(DIR_ROW[back[this.facing]] * 4);
+    ui.say("professora", professora(store.ws, store.progress, loadSettings().lang), () => { store.progress.talked = true; });
+  }
+
   update() {
+    if (this.ui?.open) { this.player.anims.stop(); this.player.setFrame(DIR_ROW[this.facing] * 4); return; }
     const inBridgeRow = (y: number) => y >= RIVER_Y && y < RIVER_Y + RIVER_H; // na ponte não levanta poeira
     if (this.moving) return;
     // teclas seguradas somam: W+A anda na diagonal; opostas se anulam

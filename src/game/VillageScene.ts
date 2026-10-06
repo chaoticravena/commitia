@@ -18,7 +18,7 @@ const IMAGES = [
 const FLOWERING = ["arvore-florida", "arvore-lavanda"];
 
 // personagens jogáveis: chave da textura -> nome e folha de caminhada
-export const CHARS = { helena: { name: "Helena", sheet: "helena-andando" }, dudu: { name: "Dudu", sheet: "dudu-andando" } };
+export const CHARS = { helena: { name: "Lena", sheet: "helena-andando" }, dudu: { name: "Dudu", sheet: "dudu-andando" } };
 export type CharKey = keyof typeof CHARS;
 
 export class VillageScene extends Phaser.Scene {

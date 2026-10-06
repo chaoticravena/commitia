@@ -124,9 +124,19 @@ export class VillageScene extends Phaser.Scene {
     [[11, 25], [25, 25]].forEach(([x, y]) => this.place("capim-alto", x, y, 0, 0));
 
     // Professora Commit
-    this.add.sprite(19 * T + 8, 14 * T + T, "professora", 0).setOrigin(0.5, 1).setDepth(15 * T);
+    const prof = this.add.sprite(19 * T + 8, 14 * T + T, "professora", 0).setOrigin(0.5, 1).setDepth(15 * T);
     this.shadow(19 * T + 8, 15 * T - 1, 12);
     this.solid[14][19] = true;
+    // vida parada: respira (sobe 1 px de vez em quando) e olha em volta; se você chega perto, olha pra você
+    let breath = 0;
+    this.time.addEvent({ delay: 900, loop: true, callback: () => prof.setY(15 * T - (breath ^= 1)) });
+    this.time.addEvent({ delay: 2600, loop: true, callback: () => {
+      const dx = this.player.x - prof.x, dy = this.player.y - prof.y;
+      const look: Dir = Math.hypot(dx, dy) < 3 * T
+        ? (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up")
+        : (["down", "down", "left", "right"] as Dir[])[Math.floor(Math.random() * 4)];
+      prof.setFrame(DIR_ROW[look] * 4);
+    } });
 
     // personagem escolhida + Gitinho
     for (const [dir, row] of Object.entries(DIR_ROW)) {

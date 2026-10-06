@@ -1,0 +1,49 @@
+GIMP Palette
+Name: Repo Vivo
+Columns: 8
+#
+ 30  20  32	Contorno 1
+ 59  38  51	Contorno 2
+ 91  65  80	Contorno 3
+ 78  42  30	Madeira / terra 1
+122  70  48	Madeira / terra 2
+168 105  63	Madeira / terra 3
+207 148  97	Madeira / terra 4
+235 194 142	Madeira / terra 5
+201 163 124	Pergaminho 1
+229 202 169	Pergaminho 2
+246 234 216	Pergaminho 3
+ 44  74  60	Grama / folhas 1
+ 79 125  93	Grama / folhas 2
+119 169 136	Grama / folhas 3
+149 218 161	Grama / folhas 4
+198 239 192	Grama / folhas 5
+ 79  82  40	Oliva 1
+121 126  62	Oliva 2
+169 164 107	Oliva 3
+ 90  46  58	Telhado 1
+123  81  88	Telhado 2
+178 111 103	Telhado 3
+227 160 140	Telhado 4
+196 127 106	Pêssego / pele 1
+254 192 146	Pêssego / pele 2
+255 220 191	Pêssego / pele 3
+ 77  74  82	Pedra 1
+133 125 117	Pedra 2
+184 176 166	Pedra 3
+226 220 210	Pedra 4
+ 34  65 107	Água 1
+ 63 111 181	Água 2
+ 95 159 214	Água 3
+166 220 239	Água 4
+217  83  79	Flores 1
+242 193  78	Flores 2
+239 159 182	Flores 3
+255 255 255	Flores 4
+ 75  58 140	Magia do tempo 1
+143 111 214	Magia do tempo 2
+200 180 255	Magia do tempo 3
+255 226 138	Magia do tempo 4
+229  88  91	Git (interface) 1
+ 87 209 138	Git (interface) 2
+106 166 255	Git (interface) 3

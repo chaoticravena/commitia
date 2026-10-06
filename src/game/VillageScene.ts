@@ -62,7 +62,8 @@ export class VillageScene extends Phaser.Scene {
     for (const [key, c] of Object.entries(CHARS)) this.load.spritesheet(key, png(c.sheet), { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("professora", png("professora-andando"), { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("gitinho", png("gitinho-andando"), { frameWidth: 32, frameHeight: 32 });
-    for (let i = 0; i < 10; i++) this.load.audio(`passo${i}`, `assets/audio/footstep0${i}.ogg`); // Kenney RPG Audio (CC0)
+    // passos por superfície (Kenney Impact Sounds, CC0): uma pisada por arquivo
+    for (const k of ["grass", "carpet", "wood"]) for (let i = 0; i < 5; i++) this.load.audio(`passo-${k}${i}`, `assets/audio/footstep_${k}_00${i}.ogg`);
     this.load.audio("musica-vila", `assets/audio/musica-vila.mp3?v=${import.meta.env.VITE_BUILD ?? "dev"}`);
   }
 
@@ -360,13 +361,13 @@ export class VillageScene extends Phaser.Scene {
     const ms = dx && dy ? Math.round(STEP_MS * Math.SQRT2) : STEP_MS; // mesma velocidade em qualquer direção
     this.tweens.add({ targets: this.player, x: nx * T + 8, y: (ny + 1) * T, duration: ms, onComplete: () => { this.moving = false; } });
     if (this.dirt[ny][nx] && !inBridgeRow(ny)) this.ambient.stepDust(nx * T + 8, (ny + 1) * T);
-    // passo: sorteado entre 10 e com o tom variando, pra não soar repetido; madeira da ponte mais aguda e seca,
-    // grama mais baixinha que a terra
+    // passo suave, estilo Stardew: grama farfalha, terra é um baque abafado, a ponte soa madeira.
+    // Sorteia 1 de 5 por superfície e varia um tiquinho o tom pra não repetir.
     if (loadSettings().sfx) {
-      const bridge = inBridgeRow(ny), dirt = this.dirt[ny][nx];
-      this.sound.play(`passo${Math.floor(Math.random() * 10)}`, {
-        volume: bridge ? 0.16 : dirt ? 0.12 : 0.07, // bem de fundo: passo é textura, não destaque
-        rate: (bridge ? 1.15 : 1) * (0.96 + Math.random() * 0.08),
+      const k = inBridgeRow(ny) ? "wood" : this.dirt[ny][nx] ? "carpet" : "grass";
+      this.sound.play(`passo-${k}${Math.floor(Math.random() * 5)}`, {
+        volume: { wood: 0.14, carpet: 0.16, grass: 0.12 }[k], // bem de fundo: passo é textura, não destaque
+        rate: 0.97 + Math.random() * 0.06,
       });
     }
     // o Gitinho vai pra onde você estava, como um seguidor de Pokémon

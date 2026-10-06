@@ -10,12 +10,42 @@ export type GameEvent =
   | { type: "git"; command: string; result: Result } // rodou um comando git
   | { type: "say"; who: "professora" | "voce"; lines: string[] }; // fala de personagem
 
-class Store extends EventTarget {
-  ws: Workspace = { work: { ...STARTING_FILES }, repo: null };
-  history: string[] = [];
-  progress: Progress = { talked: false, visitedPast: false };
+const SAVE = "commitia:save";
+const fresh = () => ({ ws: { work: { ...STARTING_FILES }, repo: null } as Workspace, history: [] as string[], progress: { talked: false, visitedPast: false } as Progress });
 
-  emit(e: GameEvent) { this.dispatchEvent(new CustomEvent("e", { detail: e })); }
+class Store extends EventTarget {
+  ws = fresh().ws;
+  history = fresh().history;
+  progress = fresh().progress;
+  char = "helena";
+
+  constructor() { super(); this.load(); }
+
+  // Jogo salvo no navegador de quem joga: mundo, repositório inteiro (os objetos são um Map, que o
+  // JSON não guarda direto: vira lista de pares), progresso e personagem. Salva a cada evento.
+  save() {
+    const repo = this.ws.repo && { ...this.ws.repo, objects: [...this.ws.repo.objects] };
+    try { localStorage.setItem(SAVE, JSON.stringify({ v: 1, char: this.char, work: this.ws.work, repo, history: this.history, progress: this.progress })); }
+    catch { /* sem storage (aba anônima, bloqueado): o jogo segue, só não lembra */ }
+  }
+
+  private load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(SAVE) ?? "null");
+      if (s?.v !== 1) return;
+      this.ws = { work: s.work, repo: s.repo && { ...s.repo, objects: new Map(s.repo.objects) } };
+      Object.assign(this, { history: s.history, progress: s.progress, char: s.char });
+    } catch { /* save corrompido: começa do zero */ }
+  }
+
+  get hasSave() { try { return !!localStorage.getItem(SAVE); } catch { return false; } }
+
+  reset() {
+    Object.assign(this, fresh());
+    try { localStorage.removeItem(SAVE); } catch { /* idem */ }
+  }
+
+  emit(e: GameEvent) { this.save(); this.dispatchEvent(new CustomEvent("e", { detail: e })); }
   on(fn: (e: GameEvent) => void) {
     const h = (ev: Event) => fn((ev as CustomEvent<GameEvent>).detail);
     this.addEventListener("e", h);

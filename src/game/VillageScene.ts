@@ -68,6 +68,8 @@ export class VillageScene extends Phaser.Scene {
 
   create() {
     playMusic(this, "musica-vila");
+    store.char = this.char;
+    store.save();
     const map = this.make.tilemap({ data: autotile(dirtGrid()), tileWidth: T, tileHeight: T });
     map.createLayer(0, map.addTilesetImage("ground")!, 0, 0);
     this.solid = Array.from({ length: MAP_H }, () => new Array<boolean>(MAP_W).fill(false));
@@ -209,7 +211,7 @@ export class VillageScene extends Phaser.Scene {
     const onGrimoire = () => { kb.enabled = !grimoire.isOpen; kb.resetKeys(); };
     grimoire.addEventListener("change", onGrimoire);
     grimoire.showButton(true);
-    this.events.once("shutdown", () => { grimoire.removeEventListener("change", onGrimoire); grimoire.showButton(false); });
+    this.events.once("shutdown", () => { grimoire.removeEventListener("change", onGrimoire); grimoire.showButton(false); this.scene.stop("ui"); });
     if (!this.scene.isActive("ui")) this.scene.launch("ui");
   }
 
@@ -327,7 +329,7 @@ export class VillageScene extends Phaser.Scene {
     // ela vira pra você (direção oposta à sua)
     const back: Record<Dir, Dir> = { up: "down", down: "up", left: "right", right: "left" };
     this.prof.setFrame(DIR_ROW[back[this.facing]] * 4);
-    ui.say("professora", professora(store.ws, store.progress, loadSettings().lang), () => { store.progress.talked = true; });
+    ui.say("professora", professora(store.ws, store.progress, loadSettings().lang), () => { store.progress.talked = true; store.save(); });
   }
 
   update() {

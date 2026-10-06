@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { playMusic } from "./music.ts";
+import { store } from "./store.ts";
 import { CHARS, type CharKey } from "./VillageScene.ts";
 
 // Tela de título no espírito do Stardew: a câmera sobe do campo até o céu, nuvens passando,
@@ -28,7 +29,7 @@ export function loadSettings(): Settings {
 const STUDIO = "Stressed Whiskers";
 const STR = {
   pt: {
-    start: "Começar", help: "Como jogar", settings: "Configurações", back: "Voltar",
+    start: "Começar", resume: "Continuar", newGame: "Novo jogo", help: "Como jogar", settings: "Configurações", back: "Voltar",
     pick: "Escolha sua personagem", pickHint: "Enter escolhe · Esc volta",
     music: "Música", sfx: "Efeitos", fullscreen: "Tela cheia", lang: "Idioma: Português",
     on: "ligada", off: "desligada", onPl: "ligados", offPl: "desligados", yes: "sim", no: "não",
@@ -42,7 +43,7 @@ const STR = {
     ],
   },
   en: {
-    start: "Start", help: "How to play", settings: "Settings", back: "Back",
+    start: "Start", resume: "Continue", newGame: "New game", help: "How to play", settings: "Settings", back: "Back",
     pick: "Choose your character", pickHint: "Enter picks · Esc goes back",
     music: "Music", sfx: "Sound effects", fullscreen: "Fullscreen", lang: "Language: English",
     on: "on", off: "off", onPl: "on", offPl: "off", yes: "yes", no: "no",
@@ -218,7 +219,11 @@ export class TitleScene extends Phaser.Scene {
     const s = this.settings, t = this.t;
     const save = () => { saveSettings(s); this.draw(); };
     if (this.state === "menu") return [
-      { label: t.start, act: () => this.go("chars") },
+      // com jogo salvo: Continuar volta pra vila do jeito que estava; Novo jogo apaga e recomeça
+      ...(store.hasSave
+        ? [{ label: t.resume, act: () => this.scene.start("village", { char: store.char }) },
+           { label: t.newGame, act: () => { store.reset(); this.go("chars"); } }]
+        : [{ label: t.start, act: () => this.go("chars") }]),
       { label: t.help, act: () => this.go("help") },
       { label: t.settings, act: () => this.go("settings") },
     ];
@@ -302,7 +307,7 @@ export class TitleScene extends Phaser.Scene {
     } else if (this.state === "menu") {
       const w = 128, h = 16, gap = 4;
       items.forEach((it, i) => {
-        const x = Math.round(W / 2 - w / 2), y = cy - 8 + i * (h + gap) - (this.sel === i ? 1 : 0); // o escolhido sobe 1 px
+        const x = Math.round(W / 2 - w / 2), y = cy - 8 - (items.length - 3) * 10 + i * (h + gap) - (this.sel === i ? 1 : 0); // o escolhido sobe 1 px
         hit(this.button(x, y, w, h, this.sel === i), i, w, h, x, y);
         this.ui.add(this.text(x + w / 2, y + h / 2, it.label));
       });

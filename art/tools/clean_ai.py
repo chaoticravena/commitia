@@ -35,9 +35,13 @@ def nearest(rgb, pal, cache):
     if rgb not in cache:
         L, a, b = oklab(rgb)
         # matiz pesa mais que luz: musgo continua verde e runa continua lilás, mesmo que o tom exato mude
+        C, h = math.hypot(a, b), math.atan2(b, a)
         def d(p):
             pL, pa, pb = oklab(p)
-            return 0.5 * (pL - L) ** 2 + 3 * ((pa - a) ** 2 + (pb - b) ** 2)
+            pC, ph = math.hypot(pa, pb), math.atan2(pb, pa)
+            dh = abs((h - ph + math.pi) % (2 * math.pi) - math.pi)
+            # ângulo do matiz pesa mais que a saturação: lilás vivo vira lilás acinzentado, não rosa
+            return 0.5 * (pL - L) ** 2 + 0.5 * (pC - C) ** 2 + 4 * (dh * min(C, pC)) ** 2
         cache[rgb] = min(pal, key=d)
     return cache[rgb]
 

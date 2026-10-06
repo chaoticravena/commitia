@@ -30,6 +30,9 @@ function fit() {
   game.scale.resize(w, h);
   game.canvas.style.width = `${innerWidth}px`;
   game.canvas.style.height = `${innerHeight}px`;
+  // Recalcula a escala do mouse/toque DEPOIS do novo tamanho na tela. No modo NONE o Phaser não faz
+  // isso sozinho: sem esta linha a escala dava 0/0 e nenhum clique acertava botão nenhum.
+  game.scale.refresh();
 }
 addEventListener("resize", fit);
 game.events.once(Phaser.Core.Events.READY, fit);

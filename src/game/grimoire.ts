@@ -17,7 +17,7 @@ const CSS = `
   border: var(--px) solid #5e4a4a; box-shadow: inset 0 0 0 calc(var(--px) * 2) #e0b98f; padding: calc(var(--px) * 6); box-sizing: border-box; z-index: 10; }
 #grimoire[hidden], #grimoire-btn[hidden] { display: none; }
 #grimoire h2 { margin: 0 0 calc(var(--px) * 4); font-size: var(--px8); font-weight: normal; color: #5e4a4a; display: flex; justify-content: space-between; }
-#grimoire h2 small { color: #a87d63; font-size: var(--px8); }
+#grimoire h2 small { color: #a87d63; font-size: var(--px8); cursor: pointer; padding: 4px 0 4px 12px; }
 #grimoire-log { flex: 1; overflow-y: auto; white-space: pre-wrap; line-height: 1.6; margin: 0; font: inherit; }
 #grimoire-log .cmd { color: #7a5fa8; } #grimoire-log .ok, #grimoire-log .add { color: #4f8f63; }
 #grimoire-log .err, #grimoire-log .del { color: #c4557a; } #grimoire-log .hash { color: #a87d63; } #grimoire-log .head { color: #5e4a4a; }
@@ -27,6 +27,8 @@ const CSS = `
 #grimoire-btn { position: fixed; right: calc(var(--px) * 4); bottom: calc(var(--px) * 4); background: #e0b98f; border: var(--px) solid #5e4a4a;
   padding: calc(var(--px) * 3) calc(var(--px) * 4); cursor: pointer; z-index: 9; color: #443c53; }
 #grimoire-btn:hover { background: #f7d9a0; }
+/* celular: o botão A fica no canto de baixo; o grimório fica logo acima dele */
+@media (pointer: coarse) { #grimoire-btn { bottom: 116px; right: 12px; min-height: 44px; } }
 `;
 
 class Grimoire extends EventTarget {
@@ -59,7 +61,17 @@ class Grimoire extends EventTarget {
     };
     size();
     addEventListener("resize", size);
+    // teclado do celular abre: a área visível (visualViewport) encolhe e o grimório acompanha
+    const fitKeyboard = () => {
+      const vv = window.visualViewport;
+      if (!vv || this.el.hidden) return;
+      const top = this.el.getBoundingClientRect().top;
+      this.el.style.maxHeight = `${Math.max(90, vv.height + vv.offsetTop - top - 8)}px`;
+    };
+    window.visualViewport?.addEventListener("resize", fitKeyboard);
+    this.input.addEventListener("focus", () => setTimeout(fitKeyboard, 300));
 
+    this.el.querySelector("h2 small")!.addEventListener("click", () => this.close());
     this.el.querySelector("form")!.addEventListener("submit", e => { e.preventDefault(); this.run(this.input.value); });
     this.input.addEventListener("keydown", e => {
       e.stopPropagation(); // o jogo não anda enquanto você digita
@@ -73,13 +85,14 @@ class Grimoire extends EventTarget {
   }
 
   // o botão só aparece dentro da vila
-  showButton(on: boolean) { this.mount(); this.btn.hidden = !on; this.btn.textContent = T[loadSettings().lang].button; }
+  showButton(on: boolean) { this.mount(); this.btn.hidden = !on; this.btn.textContent = T[loadSettings().lang].button.replace(matchMedia("(pointer: coarse)").matches ? " (G)" : "", ""); } // sem teclado, sem "(G)"
 
   open() {
     this.mount();
     const t = T[loadSettings().lang];
     this.el.querySelector("h2 span")!.textContent = t.title;
-    this.el.querySelector("h2 small")!.textContent = t.hint;
+    // o "Esc fecha" também é botão: no celular não tem Esc
+    this.el.querySelector("h2 small")!.textContent = matchMedia("(pointer: coarse)").matches ? (loadSettings().lang === "pt" ? "Fechar ✕" : "Close ✕") : t.hint;
     this.input.placeholder = t.placeholder;
     if (!this.log.childElementCount) this.print(t.hello, "head");
     this.el.hidden = false;

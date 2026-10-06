@@ -6,6 +6,7 @@ import { store } from "./store.ts";
 import { loadSettings, sfxVolume } from "./settings.ts";
 import type { UIScene } from "./UIScene.ts";
 import { grimoire } from "./grimoire.ts";
+import { touch } from "./touch.ts";
 import { FILES, build, demolish, houses, itemStatus, nextKind, type ItemStatus } from "./world.ts";
 import { BRIDGE, LOTS, MAP_H, MAP_W, RIVER_H, RIVER_Y, ROAD, T, TILES, WATER_FRAME_B, WATER_SET, autotile, dirtGrid, riverGrid } from "./map.ts";
 
@@ -219,10 +220,14 @@ export class VillageScene extends Phaser.Scene {
     [K.SPACE, K.ENTER, K.E].forEach(k => kb.addKey(k).on("down", () => this.interact()));
     // G abre o grimório; enquanto ele está aberto, o teclado é dele (WASD vira letra, não passo)
     kb.addKey(K.G).on("down", () => { if (!this.ui.open) grimoire.open(); });
-    const onGrimoire = () => { kb.enabled = !grimoire.isOpen; kb.resetKeys(); };
+    const onGrimoire = () => { kb.enabled = !grimoire.isOpen; kb.resetKeys(); touch.show(!grimoire.isOpen); };
     grimoire.addEventListener("change", onGrimoire);
     grimoire.showButton(true);
-    this.events.once("shutdown", () => { grimoire.removeEventListener("change", onGrimoire); grimoire.showButton(false); this.scene.stop("ui"); });
+    // celular: direcional anda, A conversa/constrói/avança a fala, II pausa
+    touch.onA = () => this.interact();
+    touch.onPause = () => this.ui.togglePause();
+    touch.show(true);
+    this.events.once("shutdown", () => { grimoire.removeEventListener("change", onGrimoire); grimoire.showButton(false); touch.show(false); this.scene.stop("ui"); });
     if (!this.scene.isActive("ui")) this.scene.launch("ui");
   }
 
@@ -352,6 +357,7 @@ export class VillageScene extends Phaser.Scene {
     const held = (d: Dir) => this.keys[d].some(k => k.isDown);
     let dx = (held("right") ? 1 : 0) - (held("left") ? 1 : 0);
     let dy = (held("down") ? 1 : 0) - (held("up") ? 1 : 0);
+    if (!dx && !dy) { dx = touch.dx; dy = touch.dy; } // direcional de toque
     if (!dx && !dy && this.queued) { dx = this.queued === "right" ? 1 : this.queued === "left" ? -1 : 0; dy = this.queued === "down" ? 1 : this.queued === "up" ? -1 : 0; }
     this.queued = null;
     if (!dx && !dy) { this.player.anims.stop(); this.player.setFrame(DIR_ROW[this.facing] * 4); return; }

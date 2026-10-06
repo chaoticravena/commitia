@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Commitia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,11 +11,16 @@
 <style>
   html, body { margin: 0; height: 100%; background: #0e0b1a; }
   #game { width: 100vw; height: 100vh; overflow: hidden; }
-  canvas { display: block; }
+  canvas { display: block; touch-action: none; }
+  /* celular em pé: o jogo é deitado (a vila não cabe em pé sem ficar minúscula) */
+  #rotate { display: none; position: fixed; inset: 0; z-index: 20; background: #fcf4ee; color: #5e4a4a;
+    font: 12px/2 "Press Start 2P", monospace; text-align: center; align-items: center; justify-content: center; padding: 24px; }
+  @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
 </style>
 </head>
 <body>
 <div id="game"></div>
+<div id="rotate"><p>↻<br>Vire o celular<br>Rotate your phone</p></div>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

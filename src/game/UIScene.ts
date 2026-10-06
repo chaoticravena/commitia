@@ -159,6 +159,9 @@ export class UIScene extends Phaser.Scene {
     this.drawPause();
   }
 
+  // botão II do celular (mesmas regras do Esc: não abre por cima do diálogo nem do grimório)
+  togglePause() { if (!grimoire.isOpen && (this.paused || !this.open)) this.setPaused(!this.paused); }
+
   private setPaused(on: boolean) {
     this.paused = on;
     this.pauseSel = 0;

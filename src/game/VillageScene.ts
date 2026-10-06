@@ -136,7 +136,10 @@ export class VillageScene extends Phaser.Scene {
   // shadow: largura da sombra de contato como fração da largura do sprite (0 = sem sombra).
   private place(key: string, x: number, bottom: number, solidRows = 1, shadow = 0.8) {
     const img = this.add.image(x * T, (bottom + 1) * T, key).setOrigin(0, 1).setDepth((bottom + 1) * T);
-    if (shadow) this.shadow(img.x + img.width / 2, img.y - 1, Math.round(img.width * shadow));
+    if (shadow) {
+      this.castShadow(img);
+      this.shadow(img.x + img.width / 2, img.y - 1, Math.round(img.width * shadow));
+    }
     const w = Math.ceil(img.width / T);
     for (let yy = bottom - solidRows + 1; yy <= bottom; yy++)
       for (let xx = x; xx < x + w; xx++)
@@ -159,6 +162,29 @@ export class VillageScene extends Phaser.Scene {
       g.destroy();
     }
     return this.add.image(Math.round(x), Math.round(y), key).setOrigin(0.5, 0.5).setAlpha(0.28).setDepth(1);
+  }
+
+  // Sombra projetada: a silhueta do sprite deitada no chão, com metade da altura e inclinada 45° pra
+  // trás e pra direita (sol vindo da frente-esquerda). Só desloca pixels inteiros: nada de escala fracionada.
+  private castShadow(img: Phaser.GameObjects.Image) {
+    const key = `cast-${img.texture.key}`;
+    const w = img.width, h = img.height, sh = Math.ceil(h / 2);
+    if (!this.textures.exists(key)) {
+      const src = document.createElement("canvas");
+      src.width = w; src.height = h;
+      const sctx = src.getContext("2d")!;
+      sctx.drawImage(img.texture.getSourceImage() as CanvasImageSource, 0, 0);
+      const a = sctx.getImageData(0, 0, w, h).data;
+      const tex = this.textures.createCanvas(key, w + sh, sh)!;
+      const ctx = tex.getContext();
+      ctx.fillStyle = "#443c53";
+      for (let y = 0; y < h; y++) {
+        const k = Math.floor((h - 1 - y) / 2); // altura acima da base -> recuo na sombra
+        for (let x = 0; x < w; x++) if (a[(y * w + x) * 4 + 3]) ctx.fillRect(x + k, sh - 1 - k, 1, 1);
+      }
+      tex.refresh();
+    }
+    return this.add.image(img.x, img.y, key).setOrigin(0, 1).setAlpha(0.18).setDepth(1);
   }
 
   // Halo das lanternas em anéis de pixel (degraus duros, nada de gradiente borrado).

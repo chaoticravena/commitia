@@ -26,6 +26,7 @@ const PAUSE = {
 
 export class UIScene extends Phaser.Scene {
   private paused = false;
+  private lastToast: Phaser.GameObjects.GameObject[] = [];
   private pauseSel = 0;
   private pauseBox!: Phaser.GameObjects.Container;
   private box!: Phaser.GameObjects.Container;
@@ -124,10 +125,12 @@ export class UIScene extends Phaser.Scene {
   // aviso curto no alto da tela (ex.: a linha do casas.txt que mudou)
   toast(msg: string) {
     const W = Math.floor(this.scale.width / this.cameras.main.zoom);
+    this.lastToast.forEach(o => o.destroy()); // apertou de novo: o aviso novo substitui o anterior
     const bg = this.add.graphics(); // fundo antes do texto, senão cobre as letras
     const t = this.add.text(0, 0, msg, { ...FONT, color: "#fcf4ee" });
     t.setPosition(Math.round(W / 2 - t.width / 2), 28);
     bg.fillStyle(C.woodDark).fillRect(t.x - 5, t.y - 4, t.width + 10, 16);
+    this.lastToast = [bg, t];
     this.tweens.add({ targets: [t, bg], alpha: 0, delay: 1400, duration: 400, onComplete: () => { t.destroy(); bg.destroy(); } });
   }
 

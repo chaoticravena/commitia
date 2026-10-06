@@ -13,15 +13,25 @@ type Dir = "down" | "up" | "left" | "right";
 const DIR_ROW: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // linha na folha 4x4 de caminhada
 const STEP_MS = 180;
 const PROF = { x: 19, y: 14 }; // tile da Professora Commit
-const SPRITE: Record<string, string> = { pedra: "casa-pedra-rosa", madeira: "casa-madeira", padaria: "casa-padaria" };
-// deslocamento (px) pra porta cair no centro de um tile do caminho (medido nos sprites: centro da porta em 40, 48 e 47,5)
-const DOOR_SHIFT: Record<string, number> = { pedra: 0, madeira: -8, padaria: -8 };
+const SPRITE: Record<string, string> = {
+  pedra: "casa-pedra-rosa", madeira: "casa-madeira", padaria: "casa-padaria",
+  floricultura: "casa-floricultura", cha: "casa-cha", biblioteca: "casa-biblioteca", moinho: "casa-moinho",
+};
+// centro da porta (px a partir da esquerda do sprite), medido em cada desenho
+const DOOR_X: Record<string, number> = { pedra: 40.5, madeira: 48.5, padaria: 47.5, floricultura: 64.5, cha: 54.3, biblioteca: 53.3, moinho: 49.5 };
+// Casa centralizada no lote e empurrada até a porta cair no centro de um tile do caminho.
+function doorShift(kind: string, lotX: number, width: number) {
+  const left = lotX * T, door = left + Math.round((6 * T - width) / 2) + (DOOR_X[kind] ?? width / 2);
+  const center = Math.round((door - 8) / T) * T + 8;
+  return Math.round(center - (left + (DOOR_X[kind] ?? width / 2)));
+}
 const SPRITES = "assets/sprites"; // arte própria
 // ?v= muda a cada build: o navegador baixa a arte nova em vez de mostrar a do cache
 const png = (name: string) => `${SPRITES}/${name}.png?v=${import.meta.env.VITE_BUILD ?? "dev"}`;
 
 const IMAGES = [
   "arvore-grande", "arvore-florida", "casa-pedra-rosa", "casa-madeira", "casa-padaria", "torre-relogio",
+  "casa-floricultura", "casa-cha", "casa-biblioteca", "casa-moinho",
   "pedra-do-tempo", "poste-lanterna", "cerca", "arbusto", "capim-alto", "caixa-correio",
   "arvore-pinheiro", "arvore-lavanda", "arbusto-hortensia", "arbusto-frutinhas", "toco-cogumelos", "pedrinhas",
   "canteiro-flores", "placa-madeira", "lote-vazio", "ponte-madeira",
@@ -305,7 +315,7 @@ export class VillageScene extends Phaser.Scene {
       l.img = kind ? this.place(SPRITE[kind] ?? "casa-madeira", lot.x, bottom, l.status === "ghost" ? 0 : 2, 0.95)
         : this.place("lote-vazio", lot.x, bottom, 0, 0);
       l.objs = this.children.list.slice(before);
-      if (kind) l.objs.forEach(o => { (o as Phaser.GameObjects.Image).x += DOOR_SHIFT[kind] ?? 0; });
+      if (kind) { const dx = doorShift(kind, lot.x, l.img.width); l.objs.forEach(o => { (o as Phaser.GameObjects.Image).x += dx; }); }
       if (l.status === "stg") l.img.setTint(0xb8f0c8);
       if (l.status === "ghost") l.objs.forEach(o => { const im = o as Phaser.GameObjects.Image; im.setAlpha(im.alpha * 0.4); }); // sombras incluídas, na proporção
     });
@@ -322,7 +332,8 @@ export class VillageScene extends Phaser.Scene {
     // de frente pra um lote: troca o que tem nele (edita a linha do casas.txt)
     const lot = LOTS.findIndex(l => fx >= l.x && fx < l.x + l.w && fy >= l.y && fy < l.y + l.h);
     if (lot >= 0) {
-      const kind = nextKind(houses(store.ws.work).get(lot));
+      const street = houses(store.ws.work);
+      const kind = nextKind(street.get(lot), [...street].filter(([n]) => n !== lot).map(([, k]) => k));
       store.setWork(kind ? build(store.ws.work, lot, kind) : demolish(store.ws.work, lot));
       return ui.toast(`${FILES.casas} · lote ${lot}: ${kind ?? (loadSettings().lang === "pt" ? "vazio" : "empty")}`);
     }

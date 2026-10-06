@@ -26,6 +26,10 @@ test("status por objeto: mod, stg, ok e fantasma", () => {
   assert.equal(itemStatus(m(), m([1, "a"]), m([1, "a"]), 1), "ghost");
 });
 
-test("Espaço num lote percorre vazio, pedra, madeira, padaria e volta ao vazio", () => {
-  assert.deepEqual([undefined, "pedra", "madeira", "padaria"].map(nextKind), ["pedra", "madeira", "padaria", null]);
+test("Espaço num lote percorre os tipos, pulando os que já estão na rua, e volta ao vazio", () => {
+  const rua = ["pedra", "madeira", "padaria"];
+  assert.equal(nextKind(undefined, rua), "floricultura");
+  assert.equal(nextKind("floricultura", rua), "cha");
+  assert.equal(nextKind("moinho", rua), null);
+  assert.equal(nextKind("cha", [...rua, "biblioteca"]), "moinho");
 });

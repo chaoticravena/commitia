@@ -4,8 +4,8 @@
 
 import type { Files } from "../git/repo.ts";
 
-// um tipo de casa por sprite desenhado; Espaço num lote percorre: vazio -> pedra -> madeira -> padaria -> vazio
-export const HOUSE_KINDS = ["pedra", "madeira", "padaria"] as const;
+// um tipo de casa por sprite desenhado; Espaço num lote percorre os tipos em ordem e volta ao vazio
+export const HOUSE_KINDS = ["pedra", "madeira", "padaria", "floricultura", "cha", "biblioteca", "moinho"] as const;
 export const FLOWER_KINDS = ["girassol", "rosa", "trevo"] as const;
 export type HouseKind = (typeof HOUSE_KINDS)[number];
 export type FlowerKind = (typeof FLOWER_KINDS)[number];
@@ -41,10 +41,13 @@ function edit(files: Files, path: string, label: string, n: number, kind: string
 }
 
 export const build = (f: Files, lot: number, kind: HouseKind) => edit(f, FILES.casas, "lote", lot, kind);
-// próximo tipo no ciclo do lote (null = vazio)
-export function nextKind(kind: string | undefined): HouseKind | null {
-  const i = HOUSE_KINDS.indexOf(kind as HouseKind);
-  return i === HOUSE_KINDS.length - 1 ? null : HOUSE_KINDS[i + 1];
+// próximo tipo no ciclo do lote (null = vazio), pulando os que já estão em outros lotes da rua:
+// nunca aparecem duas casas iguais, e a que sai de um lote volta a ficar disponível
+export function nextKind(kind: string | undefined, taken: Iterable<string> = []): HouseKind | null {
+  const used = new Set(taken);
+  for (let i = HOUSE_KINDS.indexOf(kind as HouseKind) + 1; i < HOUSE_KINDS.length; i++)
+    if (!used.has(HOUSE_KINDS[i])) return HOUSE_KINDS[i];
+  return null;
 }
 
 export const demolish = (f: Files, lot: number) => edit(f, FILES.casas, "lote", lot, null);

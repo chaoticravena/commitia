@@ -76,6 +76,10 @@ export class VillageScene extends Phaser.Scene {
     this.events.on("update", () => { this.player.setDepth(this.player.y); this.buddy.setDepth(this.buddy.y); });
 
     this.cameras.main.setBounds(0, 0, MAP_W * T, MAP_H * T).startFollow(this.player, true).setRoundPixels(true);
+    // zoom inteiro que mostra pelo menos 320x180 pixels do mundo
+    const zoom = () => this.cameras.main.setZoom(Math.max(1, Math.floor(Math.min(this.scale.width / 320, this.scale.height / 180))));
+    zoom();
+    this.scale.on("resize", zoom);
 
     const kb = this.input.keyboard!;
     const K = Phaser.Input.Keyboard.KeyCodes;

@@ -2,7 +2,7 @@
 
 Regras pra cada PNG do jogo (public/assets/sprites e public/assets-pastel):
 - transparência só total ou nenhuma (alpha 0 ou 255): meio-transparente vira borrão;
-- só cores da paleta (art/palette/commitia.gpl);
+- no máximo 32 cores por imagem (a paleta do jogo só é obrigatória no chão, ground.png);
 - folhas de caminhada (*-andando.png) com 4x4 quadros de 32 px.
 """
 import sys
@@ -29,7 +29,10 @@ def problems(path: Path, pal):
     colors = im.getcolors(1 << 24) or []
     if any(0 < a < 255 for _, (r, g, b, a) in colors):
         out.append("tem pixels semitransparentes")
-    off = {(r, g, b) for _, (r, g, b, a) in colors if a == 255} - pal
+    opaque = {(r, g, b) for _, (r, g, b, a) in colors if a == 255}
+    if len(opaque) > 32:
+        out.append(f"{len(opaque)} cores, máximo 32")
+    off = opaque - pal if path.stem == "ground" else set()
     if off:
         out.append(f"{len(off)} cor(es) fora da paleta, ex. #{'%02x%02x%02x' % next(iter(off))}")
     if path.stem.endswith("-andando") and im.size != (128, 128):

@@ -66,7 +66,7 @@ def to_ramp(img: Image.Image, ramp, shift: int, only=None) -> Image.Image:
 def texture(name: str) -> Image.Image:
     """Textura do Gemini -> pixels reais na paleta, recortada num período (128 px) que emenda."""
     src = Image.open(ROOT / f"art/inbox/{name}.jpeg")
-    native = clean(src, 256, whole=True).crop((0, 0, 128, 128))  # o "pixel" dessas texturas tem 4 px
+    native = clean(src, 256, whole=True, palette=True).crop((0, 0, 128, 128))  # o "pixel" dessas texturas tem 4 px
     ramps = load_ramps()
     if name.startswith("grama"):  # menta brilhante caía no tom mais claro: um tom abaixo fica menos lavado
         g = ramps["Grama / folhas"]

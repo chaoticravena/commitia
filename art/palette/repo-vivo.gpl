@@ -1,49 +1,49 @@
 GIMP Palette
-Name: Repo Vivo
+Name: Repo Vivo · Soft Pastel
 Columns: 8
 #
- 30  20  32	Contorno 1
- 59  38  51	Contorno 2
- 91  65  80	Contorno 3
- 78  42  30	Madeira / terra 1
-122  70  48	Madeira / terra 2
-168 105  63	Madeira / terra 3
-207 148  97	Madeira / terra 4
-235 194 142	Madeira / terra 5
-201 163 124	Pergaminho 1
-229 202 169	Pergaminho 2
-246 234 216	Pergaminho 3
- 44  74  60	Grama / folhas 1
- 79 125  93	Grama / folhas 2
-119 169 136	Grama / folhas 3
-149 218 161	Grama / folhas 4
-198 239 192	Grama / folhas 5
- 79  82  40	Oliva 1
-121 126  62	Oliva 2
-169 164 107	Oliva 3
- 90  46  58	Telhado 1
-123  81  88	Telhado 2
-178 111 103	Telhado 3
-227 160 140	Telhado 4
-196 127 106	Pêssego / pele 1
-254 192 146	Pêssego / pele 2
-255 220 191	Pêssego / pele 3
- 77  74  82	Pedra 1
-133 125 117	Pedra 2
-184 176 166	Pedra 3
-226 220 210	Pedra 4
- 34  65 107	Água 1
- 63 111 181	Água 2
- 95 159 214	Água 3
-166 220 239	Água 4
-217  83  79	Flores 1
-242 193  78	Flores 2
-239 159 182	Flores 3
-255 255 255	Flores 4
- 75  58 140	Magia do tempo 1
-143 111 214	Magia do tempo 2
-200 180 255	Magia do tempo 3
-255 226 138	Magia do tempo 4
-229  88  91	Git (interface) 1
- 87 209 138	Git (interface) 2
-106 166 255	Git (interface) 3
+ 43  39  56	Contorno 1
+ 68  60  83	Contorno 2
+ 97  86 115	Contorno 3
+ 77  59  54	Madeira / terra 1
+115  90  81	Madeira / terra 2
+148 122 112	Madeira / terra 3
+188 159 146	Madeira / terra 4
+222 195 182	Madeira / terra 5
+223 202 180	Pergaminho 1
+235 218 208	Pergaminho 2
+252 244 238	Pergaminho 3
+ 45  71  61	Grama / folhas 1
+ 77 109 105	Grama / folhas 2
+115 149 134	Grama / folhas 3
+157 191 176	Grama / folhas 4
+205 227 217	Grama / folhas 5
+ 74  75  54	Oliva 1
+111 113  84	Oliva 2
+155 160 122	Oliva 3
+ 83  66  65	Telhado 1
+124  98  97	Telhado 2
+163 130 129	Telhado 3
+202 169 166	Telhado 4
+179 137 123	Pêssego / pele 1
+222 183 170	Pêssego / pele 2
+247 220 211	Pêssego / pele 3
+ 69  74  84	Pedra 1
+110 116 129	Pedra 2
+152 159 171	Pedra 3
+198 204 214	Pedra 4
+ 44  61  74	Água 1
+ 71  98 117	Água 2
+108 140 158	Água 3
+150 185 201	Água 4
+188  94  93	Flores 1
+223 169 118	Flores 2
+227 163 189	Flores 3
+250 240 234	Flores 4
+ 75  74 105	Magia do tempo 1
+114 113 150	Magia do tempo 2
+160 159 197	Magia do tempo 3
+235 214 181	Magia do tempo 4
+227 108 106	Git (interface) 1
+109 194 155	Git (interface) 2
+123 176 227	Git (interface) 3

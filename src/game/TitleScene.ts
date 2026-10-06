@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { playMusic } from "./music.ts";
+import { centerText, loadSettings, settingsItems, woodButton, type MenuItem } from "./settings.ts";
 import { store } from "./store.ts";
 import { CHARS, type CharKey } from "./VillageScene.ts";
 
@@ -17,47 +18,33 @@ const C = {
   wood: 0xe0b98f, woodLight: 0xf7d9a0, woodDark: 0x5e4a4a, ink: "#443c53", cream: 0xfcf4ee,
 };
 
-// Configurações: ficam no navegador de quem joga (sem conta, sem servidor).
-export type Lang = "pt" | "en";
-export type Settings = { music: boolean; sfx: boolean; lang: Lang };
-const KEY = "commitia:settings";
-const DEFAULTS = (): Settings => ({ music: true, sfx: true, lang: navigator.language.startsWith("pt") ? "pt" : "en" });
-export function loadSettings(): Settings {
-  try { return { ...DEFAULTS(), ...JSON.parse(localStorage.getItem(KEY) ?? "{}") }; } catch { return DEFAULTS(); }
-}
-
 const STUDIO = "Stressed Whiskers";
 const STR = {
   pt: {
     start: "Começar", resume: "Continuar", newGame: "Novo jogo", help: "Como jogar", settings: "Configurações", back: "Voltar",
     pick: "Escolha sua personagem", pickHint: "Enter escolhe · Esc volta",
-    music: "Música", sfx: "Efeitos", fullscreen: "Tela cheia", lang: "Idioma: Português",
-    on: "ligada", off: "desligada", onPl: "ligados", offPl: "desligados", yes: "sim", no: "não",
     by: `feito por ${STUDIO}`,
     helpText: [
       "Commitia é um jogo pra aprender Git de verdade, do primeiro commit até achar bugs no passado.",
       "Cada comando muda a vila: arquivos viram casas e jardins, commits viram história e a Pedra do Tempo leva você a versões antigas.",
       "Setas ou WASD: andar (dá pra ir na diagonal).",
-      "Espaço: conversar.",
+      "Espaço: conversar e construir.  G: grimório.  Esc: pausa.",
       "Fale com a Professora Commit para começar.",
     ],
   },
   en: {
     start: "Start", resume: "Continue", newGame: "New game", help: "How to play", settings: "Settings", back: "Back",
     pick: "Choose your character", pickHint: "Enter picks · Esc goes back",
-    music: "Music", sfx: "Sound effects", fullscreen: "Fullscreen", lang: "Language: English",
-    on: "on", off: "off", onPl: "on", offPl: "off", yes: "yes", no: "no",
     by: `developed by ${STUDIO}`,
     helpText: [
       "Commitia is a game for learning real Git, from your first commit to hunting bugs in the past.",
       "Every command changes the village: files become houses and gardens, commits become history, and the Time Stone takes you to older versions.",
       "Arrows or WASD: walk (diagonals work too).",
-      "Space: talk.",
+      "Space: talk and build.  G: spellbook.  Esc: pause.",
       "Talk to Professor Commit to begin.",
     ],
   },
 };
-function saveSettings(s: Settings) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* navegador sem storage: vale só nesta sessão */ } }
 
 type State = "menu" | "chars" | "settings" | "help";
 
@@ -69,7 +56,6 @@ export class TitleScene extends Phaser.Scene {
   private ui!: Phaser.GameObjects.Container;
   private logo!: Phaser.GameObjects.Image;
   private intro = true;
-  private settings = loadSettings();
 
   constructor() { super("title"); }
 
@@ -213,11 +199,10 @@ export class TitleScene extends Phaser.Scene {
 
   // ---------- menu ----------
 
-  private get t() { return STR[this.settings.lang]; }
+  private get t() { return STR[loadSettings().lang]; }
 
-  private items(): { label: string; act: () => void }[] {
-    const s = this.settings, t = this.t;
-    const save = () => { saveSettings(s); this.draw(); };
+  private items(): MenuItem[] {
+    const t = this.t;
     if (this.state === "menu") return [
       // com jogo salvo: Continuar volta pra vila do jeito que estava; Novo jogo apaga e recomeça
       ...(store.hasSave
@@ -229,13 +214,7 @@ export class TitleScene extends Phaser.Scene {
     ];
     if (this.state === "chars") return (Object.keys(CHARS) as CharKey[]).map(k => ({ label: CHARS[k].name, act: () => this.scene.start("village", { char: k }) }));
     if (this.state === "help") return [{ label: t.back, act: () => this.go("menu") }];
-    return [
-      { label: `${t.music}: ${s.music ? t.on : t.off}`, act: () => { s.music = !s.music; save(); playMusic(this, "musica-titulo"); } },
-      { label: `${t.sfx}: ${s.sfx ? t.onPl : t.offPl}`, act: () => { s.sfx = !s.sfx; save(); } },
-      { label: `${t.fullscreen}: ${this.scale.isFullscreen ? t.yes : t.no}`, act: () => { this.scale.toggleFullscreen(); this.time.delayedCall(300, () => this.draw()); } },
-      { label: t.lang, act: () => { s.lang = s.lang === "pt" ? "en" : "pt"; save(); } },
-      { label: t.back, act: () => this.go("menu") },
-    ];
+    return [...settingsItems(this, () => this.draw(), () => playMusic(this, "musica-titulo")), { label: t.back, act: () => this.go("menu") }];
   }
 
   private go(state: State) { this.state = state; this.sel = 0; this.draw(); }
@@ -247,6 +226,7 @@ export class TitleScene extends Phaser.Scene {
     if (k === (horizontal ? "ArrowRight" : "ArrowDown") || k === (horizontal ? "d" : "s")) this.sel = (this.sel + 1) % n;
     else if (k === (horizontal ? "ArrowLeft" : "ArrowUp") || k === (horizontal ? "a" : "w")) this.sel = (this.sel + n - 1) % n;
     else if (k === "Enter" || k === " ") return this.items()[this.sel].act();
+    else if (!horizontal && (k === "ArrowLeft" || k === "ArrowRight" || k === "a" || k === "d")) return this.items()[this.sel].adjust?.(k === "ArrowRight" || k === "d" ? 1 : -1);
     else if (k === "Escape" && this.state !== "menu") return this.go("menu");
     else return;
     this.draw();
@@ -264,20 +244,9 @@ export class TitleScene extends Phaser.Scene {
     return "cat-face";
   }
 
-  // Botão de madeira em pixels: contorno escuro, miolo claro, linha de luz em cima e sombra embaixo.
-  private button(x: number, y: number, w: number, h: number, on: boolean) {
-    const g = this.add.graphics();
-    g.fillStyle(C.woodDark).fillRect(x + 1, y, w - 2, h).fillRect(x, y + 1, w, h - 2);
-    g.fillStyle(on ? C.woodLight : C.wood).fillRect(x + 1, y + 1, w - 2, h - 2);
-    g.fillStyle(C.cream, on ? 0.9 : 0.5).fillRect(x + 2, y + 1, w - 4, 1);
-    g.fillStyle(C.woodDark, 0.35).fillRect(x + 2, y + h - 2, w - 4, 1);
-    return g;
-  }
+  private button(x: number, y: number, w: number, h: number, on: boolean) { return woodButton(this, x, y, w, h, on); }
 
-  private text(x: number, y: number, s: string) {
-    const t = this.add.text(0, 0, s, { ...FONT, color: C.ink });
-    return t.setPosition(Math.round(x - t.width / 2), Math.round(y - t.height / 2));
-  }
+  private text(x: number, y: number, s: string) { return centerText(this, x, y, s); }
 
   private draw() {
     this.ui.removeAll(true);
@@ -331,7 +300,7 @@ export class TitleScene extends Phaser.Scene {
       });
       this.ui.add(this.text(W / 2, H - 8, this.t.pickHint));
     } else {
-      const w = 160, h = 14, gap = 4;
+      const w = 192, h = 14, gap = 4;
       items.forEach((it, i) => {
         const x = Math.round(W / 2 - w / 2), y = cy - 12 + i * (h + gap);
         hit(this.button(x, y, w, h, this.sel === i), i, w, h, x, y);

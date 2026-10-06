@@ -2,7 +2,7 @@
 // (digitar, acentos, aspas, colar e histórico funcionam como em qualquer campo de texto), vestido de
 // livro de pergaminho na mesma fonte pixelada e no mesmo tamanho de pixel do jogo.
 import type { Kind } from "../git/commands.ts";
-import { loadSettings } from "./TitleScene.ts";
+import { loadSettings } from "./settings.ts";
 import { store } from "./store.ts";
 
 const T = {

@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { loadSettings } from "./TitleScene.ts";
+import { loadSettings } from "./settings.ts";
 
 // Abertura do estúdio (como a do ConcernedApe no Stardew): o gatinho estressado pisca, leva um susto
 // e toma um gole de café. Qualquer tecla ou clique pula.

@@ -3,7 +3,7 @@ import { addAmbient, addWaterSparkles } from "./ambient.ts";
 import { playMusic } from "./music.ts";
 import { professora } from "./act1.ts";
 import { store } from "./store.ts";
-import { loadSettings } from "./TitleScene.ts";
+import { loadSettings, sfxVolume } from "./settings.ts";
 import type { UIScene } from "./UIScene.ts";
 import { grimoire } from "./grimoire.ts";
 import { FILES, build, demolish, houses, itemStatus, nextKind, type ItemStatus } from "./world.ts";
@@ -363,10 +363,11 @@ export class VillageScene extends Phaser.Scene {
     if (this.dirt[ny][nx] && !inBridgeRow(ny)) this.ambient.stepDust(nx * T + 8, (ny + 1) * T);
     // passo suave, estilo Stardew: grama farfalha, terra é um baque abafado, a ponte soa madeira.
     // Sorteia 1 de 5 por superfície e varia um tiquinho o tom pra não repetir.
-    if (loadSettings().sfx) {
+    const sfx = sfxVolume();
+    if (sfx) {
       const k = inBridgeRow(ny) ? "wood" : this.dirt[ny][nx] ? "carpet" : "grass";
       this.sound.play(`passo-${k}${Math.floor(Math.random() * 5)}`, {
-        volume: { wood: 0.14, carpet: 0.16, grass: 0.12 }[k], // bem de fundo: passo é textura, não destaque
+        volume: { wood: 0.14, carpet: 0.16, grass: 0.12 }[k] * sfx, // bem de fundo: passo é textura, não destaque
         rate: 0.97 + Math.random() * 0.06,
       });
     }

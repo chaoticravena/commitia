@@ -1,5 +1,6 @@
 import Phaser from "phaser";
-import { loadSettings } from "./TitleScene.ts";
+import { centerText, loadSettings, settingsItems, sfxVolume, woodButton, type MenuItem } from "./settings.ts";
+import { playMusic } from "./music.ts";
 import { STEPS, currentStep } from "./act1.ts";
 import { grimoire } from "./grimoire.ts";
 import { store } from "./store.ts";
@@ -18,7 +19,15 @@ export const SPEAKERS = {
 };
 export type Speaker = keyof typeof SPEAKERS;
 
+const PAUSE = {
+  pt: { title: "Pausa", resume: "Continuar", toTitle: "Voltar ao título" },
+  en: { title: "Paused", resume: "Continue", toTitle: "Back to title" },
+};
+
 export class UIScene extends Phaser.Scene {
+  private paused = false;
+  private pauseSel = 0;
+  private pauseBox!: Phaser.GameObjects.Container;
   private box!: Phaser.GameObjects.Container;
   private text!: Phaser.GameObjects.Text;
   private name!: Phaser.GameObjects.Text;
@@ -75,10 +84,14 @@ export class UIScene extends Phaser.Scene {
     this.events.once("shutdown", () => grimoire.removeEventListener("change", refresh));
     this.refreshGoal();
 
+    // pausa: Esc ou P (fora do diálogo e do grimório); a vila congela por baixo
+    this.pauseBox = this.add.container(0, 0).setDepth(100);
+    this.input.keyboard!.on("keydown", (e: KeyboardEvent) => this.pauseKey(e.key));
+
     this.layout();
     this.scale.on("resize", this.layout, this);
     this.events.once("shutdown", () => this.scale.off("resize", this.layout, this));
-    this.input.on("pointerdown", () => { if (this.open) this.advance(); });
+    this.input.on("pointerdown", () => { if (this.open && !this.paused) this.advance(); });
   }
 
   // mesmo zoom inteiro da vila; caixa centralizada embaixo
@@ -87,6 +100,7 @@ export class UIScene extends Phaser.Scene {
     this.cameras.main.setZoom(z).setOrigin(0, 0).setRoundPixels(true);
     const W = Math.floor(this.scale.width / z), H = Math.floor(this.scale.height / z);
     this.box.setPosition(Math.round((W - BOX_W) / 2), H - BOX_H - 6);
+    this.drawPause();
   }
 
   // Fala em páginas; Espaço/Enter/clique avança (ou completa a página que está sendo digitada).
@@ -117,6 +131,61 @@ export class UIScene extends Phaser.Scene {
     this.tweens.add({ targets: [t, bg], alpha: 0, delay: 1400, duration: 400, onComplete: () => { t.destroy(); bg.destroy(); } });
   }
 
+  private pauseItems(): MenuItem[] {
+    const t = PAUSE[loadSettings().lang];
+    return [
+      { label: t.resume, act: () => this.setPaused(false) },
+      ...settingsItems(this, () => this.drawPause(), () => playMusic(this, "musica-vila")),
+      { label: t.toTitle, act: () => { this.setPaused(false); this.scene.get("village").scene.start("title", { skipIntro: true }); } },
+    ];
+  }
+
+  private pauseKey(k: string) {
+    if (grimoire.isOpen) return;
+    if (!this.paused) {
+      if ((k === "Escape" || k === "p" || k === "P") && !this.open) this.setPaused(true);
+      return;
+    }
+    const items = this.pauseItems(), n = items.length;
+    if (k === "Escape" || k === "p" || k === "P") return this.setPaused(false);
+    if (k === "ArrowDown" || k === "s") this.pauseSel = (this.pauseSel + 1) % n;
+    else if (k === "ArrowUp" || k === "w") this.pauseSel = (this.pauseSel + n - 1) % n;
+    else if (k === "ArrowLeft" || k === "a" || k === "ArrowRight" || k === "d") return items[this.pauseSel].adjust?.(k === "ArrowRight" || k === "d" ? 1 : -1);
+    else if (k === "Enter" || k === " ") return items[this.pauseSel].act();
+    else return;
+    this.drawPause();
+  }
+
+  private setPaused(on: boolean) {
+    this.paused = on;
+    this.pauseSel = 0;
+    if (on) this.scene.pause("village"); else this.scene.resume("village");
+    grimoire.showButton(!on);
+    this.drawPause();
+  }
+
+  private drawPause() {
+    this.pauseBox.removeAll(true);
+    if (!this.paused) return;
+    const z = this.cameras.main.zoom;
+    const W = Math.floor(this.scale.width / z), H = Math.floor(this.scale.height / z);
+    const items = this.pauseItems();
+    const w = 192, h = 14, gap = 4, pw = w + 24, ph = 30 + items.length * (h + gap);
+    const px = Math.round(W / 2 - pw / 2), py = Math.round(H / 2 - ph / 2);
+    const g = this.add.graphics();
+    g.fillStyle(0x1b1730, 0.45).fillRect(0, 0, W, H); // a vila escurece atrás
+    g.fillStyle(C.woodDark).fillRect(px + 1, py, pw - 2, ph).fillRect(px, py + 1, pw, ph - 2);
+    g.fillStyle(C.cream).fillRect(px + 2, py + 2, pw - 4, ph - 4);
+    this.pauseBox.add([g, centerText(this, W / 2, py + 12, PAUSE[loadSettings().lang].title)]);
+    items.forEach((it, i) => {
+      const x = Math.round(W / 2 - w / 2), y = py + 24 + i * (h + gap);
+      const zone = this.add.zone(x, y, w, h).setOrigin(0).setInteractive({ useHandCursor: true });
+      zone.on("pointerover", () => { if (this.pauseSel !== i) { this.pauseSel = i; this.drawPause(); } });
+      zone.on("pointerdown", () => it.act());
+      this.pauseBox.add([woodButton(this, x, y, w, h, this.pauseSel === i), centerText(this, W / 2, y + h / 2, it.label), zone]);
+    });
+  }
+
   refreshGoal() {
     const lang = loadSettings().lang;
     const i = currentStep(store.ws, store.progress);
@@ -143,12 +212,12 @@ export class UIScene extends Phaser.Scene {
     this.shown = 0;
     this.text.setText("");
     this.arrow.setVisible(false);
-    const sfx = loadSettings().sfx;
+    const sfx = sfxVolume();
     this.typing = this.time.addEvent({
       delay: CHAR_MS, repeat: page.length - 1, callback: () => {
         this.shown++;
         this.text.setText(page.slice(0, this.shown));
-        if (sfx && this.shown % 3 === 0 && page[this.shown - 1] !== " ") this.sound.play("blip", { volume: 0.2 });
+        if (sfx && this.shown % 3 === 0 && page[this.shown - 1] !== " ") this.sound.play("blip", { volume: 0.2 * sfx });
         if (this.shown >= page.length) this.finish();
       },
     });

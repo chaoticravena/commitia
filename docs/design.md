@@ -58,6 +58,16 @@ As **três áreas do Git** (working directory, staging, repositório) ficam semp
 5. **Grimório:** cada comando aprendido vira uma carta colecionável, que acaba formando a sua colinha de Git.
 6. **Modo livre:** um sandbox com todos os comandos, pra experimentar sem medo.
 
+## Escolha de personagem
+
+Antes do Ato 1, uma tela de escolha com 4 personagens (sprite de caminhada + retrato pro diálogo):
+
+1. **A Helena** (padrão): pele morena, cabelo cacheado escuro, tiara de orelhinhas de gato.
+2. **O aventureiro de boné** (já existe: `art/clean/jogadora-andando.png`).
+3. e 4. a definir.
+
+A escolha fica salva no progresso e muda o sprite, o retrato e o nome nas falas.
+
 ## Currículo: Git inteiro em 8 atos
 
 | Ato | Tema | Comandos | Momento da história |

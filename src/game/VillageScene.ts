@@ -14,6 +14,8 @@ const DIR_ROW: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // l
 const STEP_MS = 180;
 const PROF = { x: 19, y: 14 }; // tile da Professora Commit
 const SPRITE: Record<string, string> = { pedra: "casa-pedra-rosa", madeira: "casa-madeira", padaria: "casa-padaria" };
+// deslocamento (px) pra porta cair no centro de um tile do caminho (medido nos sprites: centro da porta em 40, 48 e 47,5)
+const DOOR_SHIFT: Record<string, number> = { pedra: 0, madeira: -8, padaria: -8 };
 const SPRITES = "assets/sprites"; // arte própria
 // ?v= muda a cada build: o navegador baixa a arte nova em vez de mostrar a do cache
 const png = (name: string) => `${SPRITES}/${name}.png?v=${import.meta.env.VITE_BUILD ?? "dev"}`;
@@ -60,6 +62,7 @@ export class VillageScene extends Phaser.Scene {
     for (const [key, c] of Object.entries(CHARS)) this.load.spritesheet(key, png(c.sheet), { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("professora", png("professora-andando"), { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("gitinho", png("gitinho-andando"), { frameWidth: 32, frameHeight: 32 });
+    for (let i = 0; i < 10; i++) this.load.audio(`passo${i}`, `assets/audio/footstep0${i}.ogg`); // Kenney RPG Audio (CC0)
     this.load.audio("musica-vila", `assets/audio/musica-vila.mp3?v=${import.meta.env.VITE_BUILD ?? "dev"}`);
   }
 
@@ -299,6 +302,7 @@ export class VillageScene extends Phaser.Scene {
       l.img = kind ? this.place(SPRITE[kind] ?? "casa-madeira", lot.x, bottom, l.status === "ghost" ? 0 : 2, 0.95)
         : this.place("lote-vazio", lot.x, bottom, 0, 0);
       l.objs = this.children.list.slice(before);
+      if (kind) l.objs.forEach(o => { (o as Phaser.GameObjects.Image).x += DOOR_SHIFT[kind] ?? 0; });
       if (l.status === "stg") l.img.setTint(0xb8f0c8);
       if (l.status === "ghost") l.objs.forEach(o => { const im = o as Phaser.GameObjects.Image; im.setAlpha(im.alpha * 0.4); }); // sombras incluídas, na proporção
     });
@@ -354,6 +358,15 @@ export class VillageScene extends Phaser.Scene {
     const ms = dx && dy ? Math.round(STEP_MS * Math.SQRT2) : STEP_MS; // mesma velocidade em qualquer direção
     this.tweens.add({ targets: this.player, x: nx * T + 8, y: (ny + 1) * T, duration: ms, onComplete: () => { this.moving = false; } });
     if (this.dirt[ny][nx] && !inBridgeRow(ny)) this.ambient.stepDust(nx * T + 8, (ny + 1) * T);
+    // passo: sorteado entre 10 e com o tom variando, pra não soar repetido; madeira da ponte mais aguda e seca,
+    // grama mais baixinha que a terra
+    if (loadSettings().sfx) {
+      const bridge = inBridgeRow(ny), dirt = this.dirt[ny][nx];
+      this.sound.play(`passo${Math.floor(Math.random() * 10)}`, {
+        volume: bridge ? 0.4 : dirt ? 0.3 : 0.18,
+        rate: (bridge ? 1.35 : 1) * (0.92 + Math.random() * 0.16),
+      });
+    }
     // o Gitinho vai pra onde você estava, como um seguidor de Pokémon
     const bx = prev.x * T + 8 - this.buddy.x, by = (prev.y + 1) * T - this.buddy.y;
     const bdir: Dir = Math.abs(bx) > Math.abs(by) ? (bx > 0 ? "right" : "left") : by > 0 ? "down" : "up";

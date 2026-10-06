@@ -6,12 +6,14 @@ import { store } from "./store.ts";
 import { loadSettings } from "./TitleScene.ts";
 import type { UIScene } from "./UIScene.ts";
 import { grimoire } from "./grimoire.ts";
+import { FILES, build, demolish, houses, itemStatus, nextKind, type ItemStatus } from "./world.ts";
 import { BRIDGE, LOTS, MAP_H, MAP_W, RIVER_H, RIVER_Y, ROAD, T, TILES, WATER_FRAME_B, WATER_SET, autotile, dirtGrid, riverGrid } from "./map.ts";
 
 type Dir = "down" | "up" | "left" | "right";
 const DIR_ROW: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // linha na folha 4x4 de caminhada
 const STEP_MS = 180;
 const PROF = { x: 19, y: 14 }; // tile da Professora Commit
+const SPRITE: Record<string, string> = { pedra: "casa-pedra-rosa", madeira: "casa-madeira", padaria: "casa-padaria" };
 const SPRITES = "assets/sprites"; // arte própria
 // ?v= muda a cada build: o navegador baixa a arte nova em vez de mostrar a do cache
 const png = (name: string) => `${SPRITES}/${name}.png?v=${import.meta.env.VITE_BUILD ?? "dev"}`;
@@ -40,6 +42,7 @@ export class VillageScene extends Phaser.Scene {
   private solid: boolean[][] = [];
   private keys!: Record<Dir, Phaser.Input.Keyboard.Key[]>;
   private prof!: Phaser.GameObjects.Sprite;
+  private lots: { objs: Phaser.GameObjects.GameObject[]; img?: Phaser.GameObjects.Image; status: ItemStatus }[] = [];
   private queued: Dir | null = null; // toque rápido = um passo, mesmo se a tecla soltar antes do próximo frame
 
   constructor() { super("village"); }
@@ -102,12 +105,16 @@ export class VillageScene extends Phaser.Scene {
       tree(-1, y); tree(MAP_W - 2, y);
     }
 
-    // casas nos lotes (no jogo isso vem de casas.txt)
-    const casas = ["casa-pedra-rosa", "casa-madeira", "lote-vazio", "casa-padaria"];
-    LOTS.forEach((lot, i) => {
-      const vazio = casas[i] === "lote-vazio"; // o lote da primeira casa que você vai commitar
-      this.place(casas[i], lot.x, lot.y + lot.h - 1, vazio ? 0 : 2, vazio ? 0 : 0.95);
-    });
+    // casas nos lotes: desenhadas a partir do casas.txt e do estado de cada linha no Git
+    this.lots = LOTS.map(() => ({ objs: [], status: "ok" as ItemStatus }));
+    this.renderLots();
+    const off = store.on(() => this.renderLots());
+    let blink = false; // "mod" pisca em rosa: mudança que o Git ainda não guardou
+    this.time.addEvent({ delay: 450, loop: true, callback: () => {
+      blink = !blink;
+      for (const l of this.lots) if (l.status === "mod") blink ? l.img?.setTint(0xffa8c0) : l.img?.clearTint();
+    } });
+    this.events.once("shutdown", off);
     this.place("caixa-correio", 7, 8);
 
     // praça: Pedra do Tempo, torre do relógio e postes
@@ -276,6 +283,27 @@ export class VillageScene extends Phaser.Scene {
     return "glow";
   }
 
+  // Redesenha os 4 lotes. Mostra o que está no mundo (working dir); uma casa demolida que o Git
+  // ainda guarda aparece como fantasma. Antes do git init não há status: tudo normal.
+  private renderLots() {
+    const repo = store.ws.repo;
+    const work = houses(store.ws.work), index = houses(store.indexFiles()), head = houses(store.headFiles());
+    LOTS.forEach((lot, i) => {
+      const l = this.lots[i];
+      l.objs.forEach(o => o.destroy());
+      for (let y = lot.y; y < lot.y + lot.h; y++) for (let x = lot.x; x < lot.x + lot.w; x++) this.solid[y][x] = false;
+      l.status = repo ? itemStatus(work, index, head, i) : "ok";
+      const kind = work.get(i) ?? (l.status === "ghost" ? index.get(i) ?? head.get(i) : undefined);
+      const before = this.children.length;
+      const bottom = lot.y + lot.h - 1;
+      l.img = kind ? this.place(SPRITE[kind] ?? "casa-madeira", lot.x, bottom, l.status === "ghost" ? 0 : 2, 0.95)
+        : this.place("lote-vazio", lot.x, bottom, 0, 0);
+      l.objs = this.children.list.slice(before);
+      if (l.status === "stg") l.img.setTint(0xb8f0c8);
+      if (l.status === "ghost") l.objs.forEach(o => { const im = o as Phaser.GameObjects.Image; im.setAlpha(im.alpha * 0.4); }); // sombras incluídas, na proporção
+    });
+  }
+
   private get ui() { return this.scene.get("ui") as UIScene; }
 
   private interact() {
@@ -283,7 +311,15 @@ export class VillageScene extends Phaser.Scene {
     if (ui.open) return ui.advance();
     if (this.moving) return;
     const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[this.facing];
-    if (this.tile.x + d[0] !== PROF.x || this.tile.y + d[1] !== PROF.y) return;
+    const fx = this.tile.x + d[0], fy = this.tile.y + d[1];
+    // de frente pra um lote: troca o que tem nele (edita a linha do casas.txt)
+    const lot = LOTS.findIndex(l => fx >= l.x && fx < l.x + l.w && fy >= l.y && fy < l.y + l.h);
+    if (lot >= 0) {
+      const kind = nextKind(houses(store.ws.work).get(lot));
+      store.setWork(kind ? build(store.ws.work, lot, kind) : demolish(store.ws.work, lot));
+      return ui.toast(`${FILES.casas} · lote ${lot}: ${kind ?? (loadSettings().lang === "pt" ? "vazio" : "empty")}`);
+    }
+    if (fx !== PROF.x || fy !== PROF.y) return;
     // ela vira pra você (direção oposta à sua)
     const back: Record<Dir, Dir> = { up: "down", down: "up", left: "right", right: "left" };
     this.prof.setFrame(DIR_ROW[back[this.facing]] * 4);

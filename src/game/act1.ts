@@ -1,12 +1,12 @@
 // Ato 1 · Primeiro save. Passos da missão e falas da Professora Commit, que dependem do progresso.
 import type { Workspace } from "../git/repo.ts";
-import { houses, flowers } from "./world.ts";
+import { FILES, STARTING_FILES, flowers } from "./world.ts";
 
 export type Progress = { talked: boolean; visitedPast: boolean };
 
 const commits = (ws: Workspace) => ws.repo ? [...ws.repo.objects.values()].filter(o => o.type === "commit").length : 0;
 const detached = (ws: Workspace) => !!ws.repo && "detached" in ws.repo.head;
-const built = (ws: Workspace) => houses(ws.work).size + flowers(ws.work).size > 0;
+const built = (ws: Workspace) => ws.work[FILES.casas] !== STARTING_FILES[FILES.casas] || flowers(ws.work).size > 0;
 
 export const STEPS: { label: { pt: string; en: string }; done: (ws: Workspace, p: Progress) => boolean }[] = [
   { label: { pt: "Fale com a Profa. Commit", en: "Talk to Prof. Commit" }, done: (_, p) => p.talked },
@@ -36,14 +36,14 @@ const LINES: Record<"pt" | "en", string[][]> = {
     ],
     [
       "Agora a vila tem um repositório! Ele vai lembrar de cada momento que você salvar.",
-      "Construa algo: chegue perto de um lote vazio ou de um canteiro e aperte Espaço.",
+      "Construa algo: pare de frente pro lote vazio (o cercado de corda) e aperte Espaço. Apertar de novo troca a casa.",
     ],
     [
-      "Viu o contorno piscando? É uma mudança que o Git ainda não guardou.",
+      "Viu as casas piscando? São mudanças que o Git ainda não guardou. Confira com git status.",
       "Escolha o que vai entrar no próximo save com git add. Experimente: git add .",
     ],
     [
-      "Está no staging: a área de preparação, esperando o save.",
+      "Verde! Está no staging: a área de preparação, esperando o save.",
       "Agora guarde o momento: git commit -m \"minha primeira casa\"",
     ],
     [
@@ -75,14 +75,14 @@ const LINES: Record<"pt" | "en", string[][]> = {
     ],
     [
       "Now the village has a repository! It will remember every moment you save.",
-      "Build something: walk up to an empty lot or a flower bed and press Space.",
+      "Build something: face the empty lot (the one roped off) and press Space. Press again to swap the house.",
     ],
     [
-      "See the blinking outline? That's a change Git hasn't saved yet.",
+      "See the houses blinking? Those are changes Git hasn't saved yet. Check with git status.",
       "Pick what goes into the next save with git add. Try: git add .",
     ],
     [
-      "It's in the staging area, waiting for the save.",
+      "Green! It's in the staging area, waiting for the save.",
       "Now keep this moment: git commit -m \"my first house\"",
     ],
     [

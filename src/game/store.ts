@@ -3,6 +3,7 @@
 import { run, type Result } from "../git/commands.ts";
 import { blobContent, headCommit, treeOf, type Files, type Workspace } from "../git/repo.ts";
 import type { Progress } from "./act1.ts";
+import { STARTING_FILES } from "./world.ts";
 
 export type GameEvent =
   | { type: "world" } // o mundo mudou (construiu, plantou, demoliu)
@@ -10,18 +11,23 @@ export type GameEvent =
   | { type: "say"; who: "professora" | "voce"; lines: string[] }; // fala de personagem
 
 class Store extends EventTarget {
-  ws: Workspace = { work: {}, repo: null };
+  ws: Workspace = { work: { ...STARTING_FILES }, repo: null };
   history: string[] = [];
   progress: Progress = { talked: false, visitedPast: false };
 
   emit(e: GameEvent) { this.dispatchEvent(new CustomEvent("e", { detail: e })); }
-  on(fn: (e: GameEvent) => void) { this.addEventListener("e", ev => fn((ev as CustomEvent<GameEvent>).detail)); }
+  on(fn: (e: GameEvent) => void) {
+    const h = (ev: Event) => fn((ev as CustomEvent<GameEvent>).detail);
+    this.addEventListener("e", h);
+    return () => this.removeEventListener("e", h);
+  }
 
   setWork(work: Files) { this.ws.work = work; this.emit({ type: "world" }); }
 
   git(raw: string): Result {
     this.history.push(raw);
     const result = run(this.ws, raw);
+    if (this.ws.repo && "detached" in this.ws.repo.head) this.progress.visitedPast = true; // a missão lembra que você foi ao passado
     this.emit({ type: "git", command: result.command ?? "", result });
     return result;
   }

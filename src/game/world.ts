@@ -4,12 +4,17 @@
 
 import type { Files } from "../git/repo.ts";
 
-export const HOUSE_KINDS = ["laranja", "palha", "vermelha", "dourada"] as const;
+// um tipo de casa por sprite desenhado; Espaço num lote percorre: vazio -> pedra -> madeira -> padaria -> vazio
+export const HOUSE_KINDS = ["pedra", "madeira", "padaria"] as const;
 export const FLOWER_KINDS = ["girassol", "rosa", "trevo"] as const;
 export type HouseKind = (typeof HOUSE_KINDS)[number];
 export type FlowerKind = (typeof FLOWER_KINDS)[number];
 
 export const FILES = { casas: "casas.txt", jardim: "jardim.txt" } as const;
+
+// A vila já existe quando o jogo começa, só que sem Git: depois do git init, o git status mostra tudo
+// como não rastreado. O lote 2 (o cercado de corda) fica vazio pra primeira construção.
+export const STARTING_FILES = { [FILES.casas]: "lote 0: pedra\nlote 1: madeira\nlote 3: padaria" };
 
 type Slots = Map<number, string>; // número do lote/canteiro -> tipo
 
@@ -36,6 +41,12 @@ function edit(files: Files, path: string, label: string, n: number, kind: string
 }
 
 export const build = (f: Files, lot: number, kind: HouseKind) => edit(f, FILES.casas, "lote", lot, kind);
+// próximo tipo no ciclo do lote (null = vazio)
+export function nextKind(kind: string | undefined): HouseKind | null {
+  const i = HOUSE_KINDS.indexOf(kind as HouseKind);
+  return i === HOUSE_KINDS.length - 1 ? null : HOUSE_KINDS[i + 1];
+}
+
 export const demolish = (f: Files, lot: number) => edit(f, FILES.casas, "lote", lot, null);
 export const plant = (f: Files, spot: number, kind: FlowerKind) => edit(f, FILES.jardim, "canteiro", spot, kind);
 export const uproot = (f: Files, spot: number) => edit(f, FILES.jardim, "canteiro", spot, null);

@@ -107,6 +107,16 @@ export class UIScene extends Phaser.Scene {
     this.next();
   }
 
+  // aviso curto no alto da tela (ex.: a linha do casas.txt que mudou)
+  toast(msg: string) {
+    const W = Math.floor(this.scale.width / this.cameras.main.zoom);
+    const bg = this.add.graphics(); // fundo antes do texto, senão cobre as letras
+    const t = this.add.text(0, 0, msg, { ...FONT, color: "#fcf4ee" });
+    t.setPosition(Math.round(W / 2 - t.width / 2), 28);
+    bg.fillStyle(C.woodDark).fillRect(t.x - 5, t.y - 4, t.width + 10, 16);
+    this.tweens.add({ targets: [t, bg], alpha: 0, delay: 1400, duration: 400, onComplete: () => { t.destroy(); bg.destroy(); } });
+  }
+
   refreshGoal() {
     const lang = loadSettings().lang;
     const i = currentStep(store.ws, store.progress);

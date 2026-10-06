@@ -3,6 +3,7 @@ import { StudioScene } from "./game/StudioScene.ts";
 import { TitleScene } from "./game/TitleScene.ts";
 import { UIScene } from "./game/UIScene.ts";
 import { VillageScene } from "./game/VillageScene.ts";
+import { store } from "./game/store.ts";
 
 // Pixel art nítida: o canvas usa pixels REAIS da tela (considerando a escala do Windows, ex. 125%)
 // e a câmera amplia só por números inteiros. Escala fracionada deixa pixels de tamanhos diferentes.
@@ -51,4 +52,4 @@ if (import.meta.env.DEV) {
   });
 }
 
-if (import.meta.env.DEV) Object.assign(window, { game }); // inspeção no console durante o desenvolvimento
+if (import.meta.env.DEV) Object.assign(window, { game, store }); // inspeção no console durante o desenvolvimento

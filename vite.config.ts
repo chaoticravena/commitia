@@ -1,6 +1,9 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
+// carimbo do build, usado como ?v= nas imagens (src/game/VillageScene.ts)
+process.env.VITE_BUILD ??= Date.now().toString(36);
+
 export default defineConfig({
   base: "./", // caminhos relativos: funciona em lenaschwantes.github.io/commitia/ e em qualquer subpasta
   // ponytail: o phaser.esm.js (8,8 MB) vira 50 MB com source map no dev server e estoura a memória;

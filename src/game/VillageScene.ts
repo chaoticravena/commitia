@@ -5,7 +5,9 @@ import { LOTS, MAP_H, MAP_W, ROAD, T, autotile, dirtGrid } from "./map.ts";
 type Dir = "down" | "up" | "left" | "right";
 const DIR_ROW: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // linha na folha 4x4 de caminhada
 const STEP_MS = 180;
-const SPRITES = "assets/sprites"; // arte própria, já na paleta
+const SPRITES = "assets/sprites"; // arte própria
+// ?v= muda a cada build: o navegador baixa a arte nova em vez de mostrar a do cache
+const png = (name: string) => `${SPRITES}/${name}.png?v=${import.meta.env.VITE_BUILD ?? "dev"}`;
 
 const IMAGES = [
   "arvore-grande", "arvore-florida", "casa-pedra-rosa", "casa-madeira", "casa-padaria", "torre-relogio",
@@ -30,11 +32,11 @@ export class VillageScene extends Phaser.Scene {
   constructor() { super("village"); }
 
   preload() {
-    this.load.image("ground", `${SPRITES}/ground.png`); // gerado por art/tools/build_ground.py
-    for (const name of IMAGES) this.load.image(name, `${SPRITES}/${name}.png`);
-    this.load.spritesheet("helena", `${SPRITES}/helena-andando.png`, { frameWidth: 32, frameHeight: 32 });
-    this.load.spritesheet("professora", `${SPRITES}/professora-andando.png`, { frameWidth: 32, frameHeight: 32 });
-    this.load.spritesheet("gitinho", `${SPRITES}/gitinho-andando.png`, { frameWidth: 32, frameHeight: 32 });
+    this.load.image("ground", png("ground")); // gerado por art/tools/build_ground.py
+    for (const name of IMAGES) this.load.image(name, png(name));
+    this.load.spritesheet("helena", png("helena-andando"), { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("professora", png("professora-andando"), { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("gitinho", png("gitinho-andando"), { frameWidth: 32, frameHeight: 32 });
   }
 
   create() {
@@ -94,7 +96,7 @@ export class VillageScene extends Phaser.Scene {
     for (const [dir, row] of Object.entries(DIR_ROW)) {
       this.anims.create({ key: `walk-${dir}`, frames: this.anims.generateFrameNumbers("helena", { frames: [0, 1, 2, 3].map(c => row * 4 + c) }), frameRate: 8, repeat: -1 });
       // Gitinho pula o tempo todo, como seguidor de Pokémon: parado, agacha, no ar, aterrissa
-      this.anims.create({ key: `hop-${dir}`, frames: this.anims.generateFrameNumbers("gitinho", { frames: [0, 1, 2, 3].map(c => row * 4 + c) }), frameRate: 6, repeat: -1 });
+      this.anims.create({ key: `hop-${dir}`, frames: this.anims.generateFrameNumbers("gitinho", { frames: [0, 1, 2, 3].map(c => row * 4 + c) }), frameRate: 4, repeat: -1 }); // 1 pulo por segundo
     }
     this.player = this.add.sprite(this.tile.x * T + 8, (this.tile.y + 1) * T, "helena", DIR_ROW.up * 4).setOrigin(0.5, 1);
     this.buddy = this.add.sprite(this.tile.x * T + 8, (this.tile.y + 2) * T, "gitinho").setOrigin(0.5, 1).play("hop-up");

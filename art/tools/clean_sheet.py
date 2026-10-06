@@ -91,7 +91,32 @@ def defringe(img):
     return img
 
 
-def sheet(img: Image.Image, p=10.24, mirror_right=False, swap_sides=False, side_col3=False) -> Image.Image:
+def main_only(cell: Image.Image) -> Image.Image:
+    """Mantém só a maior peça ligada do quadro: some com sombra e poeira que a IA desenha soltas
+    (o jogo já desenha sombra própria). Chamado depois de alinhar, pra o pulo continuar no ar."""
+    px = cell.load(); W, H = cell.size
+    seen, best = set(), []
+    for y in range(H):
+        for x in range(W):
+            if px[x, y][3] and (x, y) not in seen:
+                comp, stack = [], [(x, y)]
+                seen.add((x, y))
+                while stack:
+                    cx, cy = stack.pop(); comp.append((cx, cy))
+                    for dx in (-1, 0, 1):
+                        for dy in (-1, 0, 1):
+                            nx, ny = cx + dx, cy + dy
+                            if 0 <= nx < W and 0 <= ny < H and px[nx, ny][3] and (nx, ny) not in seen:
+                                seen.add((nx, ny)); stack.append((nx, ny))
+                best = max(best, comp, key=len)
+    keep = set(best)
+    out = Image.new("RGBA", cell.size)
+    for x, y in keep:
+        out.putpixel((x, y), px[x, y])
+    return out
+
+
+def sheet(img: Image.Image, p=10.24, mirror_right=False, swap_sides=False, side_col3=False, main=False) -> Image.Image:
     img = img.convert("RGB")
     hx, hy = edges(img)
     ox, oy = phase(hx, p), phase(hy, p)
@@ -105,7 +130,7 @@ def sheet(img: Image.Image, p=10.24, mirror_right=False, swap_sides=False, side_
             x0 = round((c * cw - (ox if ox <= p / 2 else ox - p)) / p); y0 = round((r * cw - (oy if oy <= p / 2 else oy - p)) / p)
             cell = full.crop((x0, y0, x0 + round(cw / p), y0 + round(cw / p)))
             big = Image.new("RGBA", (32, 32)); big.paste(cell, (0, 0))
-            cells[r][c] = align(big)
+            cells[r][c] = main_only(align(big)) if main else align(big)
     if side_col3:  # a IA às vezes desenha o 3º quadro da lateral de frente: repete o quadro parado
         cells[2][2] = cells[2][0]
     if mirror_right:  # a IA às vezes repete o mesmo lado nas duas linhas laterais
@@ -140,12 +165,13 @@ if __name__ == "__main__":
     ap.add_argument("--mirror-right", action="store_true", help="linha da direita = espelho da esquerda")
     ap.add_argument("--swap-sides", action="store_true", help="troca as linhas de esquerda e direita")
     ap.add_argument("--side-col3", action="store_true", help="3º quadro da lateral = quadro parado")
+    ap.add_argument("--main-only", action="store_true", help="tira sombra/poeira soltas desenhadas pela IA")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
         selftest()
     else:
-        out = sheet(Image.open(ROOT / f"art/inbox/{a.nome}.jpeg"), mirror_right=a.mirror_right, swap_sides=a.swap_sides, side_col3=a.side_col3)
+        out = sheet(Image.open(ROOT / f"art/inbox/{a.nome}.jpeg"), mirror_right=a.mirror_right, swap_sides=a.swap_sides, side_col3=a.side_col3, main=a.main_only)
         for d in ("art/clean", "public/assets/sprites"):
             out.save(ROOT / d / f"{a.nome}.png")
         print(f"{a.nome}: ok")

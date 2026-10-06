@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { addAmbient, addWaterSparkles } from "./ambient.ts";
+import { playMusic } from "./music.ts";
 import { BRIDGE, LOTS, MAP_H, MAP_W, RIVER_H, RIVER_Y, ROAD, T, TILES, WATER_FRAME_B, WATER_SET, autotile, dirtGrid, riverGrid } from "./map.ts";
 
 type Dir = "down" | "up" | "left" | "right";
@@ -49,9 +50,11 @@ export class VillageScene extends Phaser.Scene {
     for (const [key, c] of Object.entries(CHARS)) this.load.spritesheet(key, png(c.sheet), { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("professora", png("professora-andando"), { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("gitinho", png("gitinho-andando"), { frameWidth: 32, frameHeight: 32 });
+    this.load.audio("musica-vila", `assets/audio/musica-vila.mp3?v=${import.meta.env.VITE_BUILD ?? "dev"}`);
   }
 
   create() {
+    playMusic(this, "musica-vila");
     const map = this.make.tilemap({ data: autotile(dirtGrid()), tileWidth: T, tileHeight: T });
     map.createLayer(0, map.addTilesetImage("ground")!, 0, 0);
     this.solid = Array.from({ length: MAP_H }, () => new Array<boolean>(MAP_W).fill(false));

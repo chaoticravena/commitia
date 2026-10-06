@@ -21,8 +21,9 @@ from recolor import load_ramps, oklab
 
 def is_background(rgb):
     r, g, b = rgb
-    # magenta puro ou franja misturada com ele: vermelho e azul altos, verde bem abaixo
-    return r > 150 and b > 150 and g < min(r, b) - 70
+    # magenta puro (perto de #FF00FF) ou franja bem misturada com ele. Roxos de verdade (orbe, Gitinho)
+    # ficam: o teste antigo ("vermelho e azul altos, verde baixo") apagava qualquer roxo forte.
+    return (r - 255) ** 2 + g ** 2 + (b - 255) ** 2 < 110 ** 2 or (r > 200 and b > 200 and g < 120)
 
 
 def palette_colors():

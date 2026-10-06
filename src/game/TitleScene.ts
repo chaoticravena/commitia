@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { playMusic } from "./music.ts";
 import { CHARS, type CharKey } from "./VillageScene.ts";
 
 // Tela de título no espírito do Stardew: a câmera sobe do campo até o céu, nuvens passando,
@@ -65,7 +66,7 @@ export class TitleScene extends Phaser.Scene {
   private state: State = "menu";
   private sel = 0;
   private ui!: Phaser.GameObjects.Container;
-  private logo!: Phaser.GameObjects.Image;
+  private logo!: Phaser.GameObjects.Sprite;
   private intro = true;
   private settings = loadSettings();
 
@@ -78,7 +79,9 @@ export class TitleScene extends Phaser.Scene {
   }
 
   preload() {
-    for (const n of ["logo-commitia", "arvore-grande", "arvore-florida", "arvore-pinheiro", "arvore-lavanda"]) this.load.image(n, png(n));
+    for (const n of ["arvore-grande", "arvore-florida", "arvore-pinheiro", "arvore-lavanda"]) this.load.image(n, png(n));
+    this.load.spritesheet("logo-anim", png("logo-commitia-anim"), { frameWidth: 160, frameHeight: 44 });
+    this.load.audio("musica-titulo", `assets/audio/musica-titulo.mp3?v=${import.meta.env.VITE_BUILD ?? "dev"}`);
     this.load.spritesheet("ground-tiles", png("ground"), { frameWidth: 16, frameHeight: 16 });
     for (const [key, c] of Object.entries(CHARS)) this.load.spritesheet(key, png(c.sheet), { frameWidth: 32, frameHeight: 32 });
   }
@@ -105,7 +108,11 @@ export class TitleScene extends Phaser.Scene {
     this.birds();
 
     this.ui = this.add.container(0, 0).setDepth(10);
-    const logo = this.logo = this.add.image(Math.round(W / 2), Math.round(H * 0.24), "logo-commitia").setDepth(9);
+    const logo = this.logo = this.add.sprite(Math.round(W / 2), Math.round(H * 0.24), "logo-anim", 0).setDepth(9);
+    // clicar na logo: aperta, as letras pulam em onda, o brotinho balança e o orbe brilha
+    if (!this.anims.exists("logo-poke")) this.anims.create({ key: "logo-poke", frames: this.anims.generateFrameNumbers("logo-anim", { frames: [1, 2, 3, 4, 5, 6, 7, 0] }), frameRate: 12 });
+    logo.setInteractive({ useHandCursor: true }).on("pointerdown", () => logo.play("logo-poke"));
+    playMusic(this, "musica-titulo");
     if (this.intro) {
       cam.setScroll(0, meadow);
       logo.setY(-40);
@@ -206,7 +213,7 @@ export class TitleScene extends Phaser.Scene {
     if (this.state === "chars") return (Object.keys(CHARS) as CharKey[]).map(k => ({ label: CHARS[k].name, act: () => this.scene.start("village", { char: k }) }));
     if (this.state === "help") return [{ label: t.back, act: () => this.go("menu") }];
     return [
-      { label: `${t.music}: ${s.music ? t.on : t.off}`, act: () => { s.music = !s.music; save(); } },
+      { label: `${t.music}: ${s.music ? t.on : t.off}`, act: () => { s.music = !s.music; save(); playMusic(this, "musica-titulo"); } },
       { label: `${t.sfx}: ${s.sfx ? t.onPl : t.offPl}`, act: () => { s.sfx = !s.sfx; save(); } },
       { label: `${t.fullscreen}: ${this.scale.isFullscreen ? t.yes : t.no}`, act: () => { this.scale.toggleFullscreen(); this.time.delayedCall(300, () => this.draw()); } },
       { label: t.lang, act: () => { s.lang = s.lang === "pt" ? "en" : "pt"; save(); } },

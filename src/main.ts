@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { StudioScene } from "./game/StudioScene.ts";
 import { TitleScene } from "./game/TitleScene.ts";
 import { VillageScene } from "./game/VillageScene.ts";
 
@@ -19,7 +20,7 @@ const game = new Phaser.Game({
   pixelArt: true,
   backgroundColor: "#1b1730",
   scale: { mode: Phaser.Scale.NONE },
-  scene: [TitleScene, VillageScene],
+  scene: [StudioScene, TitleScene, VillageScene],
 });
 
 function fit() {

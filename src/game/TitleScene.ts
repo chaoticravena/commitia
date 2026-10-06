@@ -66,7 +66,7 @@ export class TitleScene extends Phaser.Scene {
   private state: State = "menu";
   private sel = 0;
   private ui!: Phaser.GameObjects.Container;
-  private logo!: Phaser.GameObjects.Sprite;
+  private logo!: Phaser.GameObjects.Image;
   private intro = true;
   private settings = loadSettings();
 
@@ -79,8 +79,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   preload() {
-    for (const n of ["arvore-grande", "arvore-florida", "arvore-pinheiro", "arvore-lavanda"]) this.load.image(n, png(n));
-    this.load.spritesheet("logo-anim", png("logo-commitia-anim"), { frameWidth: 160, frameHeight: 44 });
+    for (const n of ["logo-commitia", "arvore-grande", "arvore-florida", "arvore-pinheiro", "arvore-lavanda"]) this.load.image(n, png(n));
     this.load.audio("musica-titulo", `assets/audio/musica-titulo.mp3?v=${import.meta.env.VITE_BUILD ?? "dev"}`);
     this.load.spritesheet("ground-tiles", png("ground"), { frameWidth: 16, frameHeight: 16 });
     for (const [key, c] of Object.entries(CHARS)) this.load.spritesheet(key, png(c.sheet), { frameWidth: 32, frameHeight: 32 });
@@ -108,10 +107,23 @@ export class TitleScene extends Phaser.Scene {
     this.birds();
 
     this.ui = this.add.container(0, 0).setDepth(10);
-    const logo = this.logo = this.add.sprite(Math.round(W / 2), Math.round(H * 0.24), "logo-anim", 0).setDepth(9);
-    // clicar na logo: aperta, as letras pulam em onda, o brotinho balança e o orbe brilha
-    if (!this.anims.exists("logo-poke")) this.anims.create({ key: "logo-poke", frames: this.anims.generateFrameNumbers("logo-anim", { frames: [1, 2, 3, 4, 5, 6, 7, 0] }), frameRate: 12 });
-    logo.setInteractive({ useHandCursor: true }).on("pointerdown", () => logo.play("logo-poke"));
+    const logo = this.logo = this.add.image(Math.round(W / 2), Math.round(H * 0.24), "logo-commitia").setDepth(9);
+    // clicar na logo: pulinho com quique e brilhos de pixel saindo de trás dela
+    if (!this.textures.exists("twinkle")) {
+      const g = this.make.graphics({}, false).fillStyle(C.cream).fillRect(1, 0, 1, 3).fillRect(0, 1, 3, 1); // estrelinha 3x3
+      g.generateTexture("twinkle", 3, 3); g.destroy();
+    }
+    const burst = this.add.particles(0, 0, "twinkle", {
+      emitting: false, lifespan: 700, speed: { min: 30, max: 70 }, angle: { min: 200, max: 340 }, gravityY: 80,
+      alpha: { start: 1, end: 0 }, tint: [0xfcf4ee, 0xc8bde6, 0xf2b8c6, 0xf7d9a0],
+    }).setDepth(8);
+    logo.setInteractive({ useHandCursor: true }).on("pointerdown", () => {
+      if (this.tweens.isTweening(logo)) return;
+      const y = Math.round(H * 0.24);
+      burst.explode(14, logo.x, y - 8);
+      this.tweens.add({ targets: logo, y: y - 8, duration: 120, ease: "Quad.Out", onComplete: () =>
+        this.tweens.add({ targets: logo, y, duration: 600, ease: "Bounce.Out" }) });
+    });
     playMusic(this, "musica-titulo");
     if (this.intro) {
       cam.setScroll(0, meadow);

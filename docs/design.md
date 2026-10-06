@@ -63,7 +63,7 @@ As **três áreas do Git** (working directory, staging, repositório) ficam semp
 Antes do Ato 1, uma tela de escolha com 4 personagens (sprite de caminhada + retrato pro diálogo):
 
 1. **A Helena** (padrão): pele caramelo, cabelo longo cacheado castanho-escuro com orelhinhas de gato que saem do próprio cabelo, jardineira rosa pastel sobre camiseta azul-clara (referência: `art/ref/helena-ref.jpg`).
-2. **O aventureiro de boné** (já existe: `art/clean/jogadora-andando.png`).
+2. **Dudu**, o aventureiro de boné (`art/clean/dudu-andando.png`), inspirado no filho da Helena.
 3. e 4. a definir.
 
 A escolha fica salva no progresso e muda o sprite, o retrato e o nome nas falas.

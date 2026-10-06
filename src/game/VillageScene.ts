@@ -17,7 +17,12 @@ const IMAGES = [
 ];
 const FLOWERING = ["arvore-florida", "arvore-lavanda"];
 
+// personagens jogáveis: chave da textura -> nome e folha de caminhada
+export const CHARS = { helena: { name: "Helena", sheet: "helena-andando" }, dudu: { name: "Dudu", sheet: "dudu-andando" } };
+export type CharKey = keyof typeof CHARS;
+
 export class VillageScene extends Phaser.Scene {
+  private char: CharKey = "helena";
   private player!: Phaser.GameObjects.Sprite;
   private buddy!: Phaser.GameObjects.Sprite;
   private dirt = dirtGrid();
@@ -31,10 +36,17 @@ export class VillageScene extends Phaser.Scene {
 
   constructor() { super("village"); }
 
+  init(data: { char?: CharKey }) {
+    this.char = data.char ?? "helena";
+    this.tile = { x: 15, y: 17 };
+    this.facing = "up";
+    this.moving = false;
+  }
+
   preload() {
     this.load.image("ground", png("ground")); // gerado por art/tools/build_ground.py
     for (const name of IMAGES) this.load.image(name, png(name));
-    this.load.spritesheet("helena", png("helena-andando"), { frameWidth: 32, frameHeight: 32 });
+    for (const [key, c] of Object.entries(CHARS)) this.load.spritesheet(key, png(c.sheet), { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("professora", png("professora-andando"), { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("gitinho", png("gitinho-andando"), { frameWidth: 32, frameHeight: 32 });
   }
@@ -116,21 +128,23 @@ export class VillageScene extends Phaser.Scene {
     this.shadow(19 * T + 8, 15 * T - 1, 12);
     this.solid[14][19] = true;
 
-    // jogadora + Gitinho
+    // personagem escolhida + Gitinho
     for (const [dir, row] of Object.entries(DIR_ROW)) {
-      this.anims.create({ key: `walk-${dir}`, frames: this.anims.generateFrameNumbers("helena", { frames: [0, 1, 2, 3].map(c => row * 4 + c) }), frameRate: 8, repeat: -1 });
+      for (const key of Object.keys(CHARS))
+        this.anims.create({ key: `${key}-walk-${dir}`, frames: this.anims.generateFrameNumbers(key, { frames: [0, 1, 2, 3].map(c => row * 4 + c) }), frameRate: 8, repeat: -1 });
       // Gitinho pula o tempo todo, como seguidor de Pokémon: parado, agacha, no ar, aterrissa
       this.anims.create({ key: `hop-${dir}`, frames: this.anims.generateFrameNumbers("gitinho", { frames: [0, 1, 2, 3].map(c => row * 4 + c) }), frameRate: 4, repeat: -1 }); // 1 pulo por segundo
     }
-    this.player = this.add.sprite(this.tile.x * T + 8, (this.tile.y + 1) * T, "helena", DIR_ROW.up * 4).setOrigin(0.5, 1);
+    this.player = this.add.sprite(this.tile.x * T + 8, (this.tile.y + 1) * T, this.char, DIR_ROW.up * 4).setOrigin(0.5, 1);
     this.buddy = this.add.sprite(this.tile.x * T + 8, (this.tile.y + 2) * T, "gitinho").setOrigin(0.5, 1).play("hop-up");
     const shadows = [this.shadow(0, 0, 12), this.shadow(0, 0, 10)];
-    this.events.on("update", () => {
+    const follow = () => {
       shadows[0].setPosition(this.player.x, this.player.y - 1);
       shadows[1].setPosition(this.buddy.x, this.buddy.y - 1);
       this.player.setDepth(this.player.y);
       this.buddy.setDepth(this.buddy.y);
-    });
+    };
+    this.events.on("update", follow);
 
     this.ambient = addAmbient(this, placed, new Phaser.Geom.Rectangle(2 * T, 3 * T, (MAP_W - 4) * T, (MAP_H - 6) * T));
 
@@ -142,11 +156,13 @@ export class VillageScene extends Phaser.Scene {
     });
     this.cameras.main.filters.external.addVignette(0.5, 0.5, 0.75, 0.15, 0x9a8fb0, Phaser.BlendModes.MULTIPLY); // escurece ~17% nos cantos, nada no centro
 
-    this.cameras.main.setBounds(0, 0, MAP_W * T, MAP_H * T).startFollow(this.player, true).setRoundPixels(true);
+    const cam = this.cameras.main.setBounds(0, 0, MAP_W * T, MAP_H * T).setRoundPixels(true).startFollow(this.player, true);
     // zoom inteiro que mostra pelo menos 320x180 pixels do mundo
-    const zoom = () => this.cameras.main.setZoom(Math.max(1, Math.floor(Math.min(this.scale.width / 320, this.scale.height / 180))));
+    const zoom = () => cam.setZoom(Math.max(1, Math.floor(Math.min(this.scale.width / 320, this.scale.height / 180))));
     zoom();
     this.scale.on("resize", zoom);
+    // a cena reinicia ao trocar de personagem: solta os ouvintes que não morrem junto com ela
+    this.events.once("shutdown", () => { this.scale.off("resize", zoom); this.events.off("update", follow); });
 
     const kb = this.input.keyboard!;
     const K = Phaser.Input.Keyboard.KeyCodes;
@@ -242,7 +258,7 @@ export class VillageScene extends Phaser.Scene {
     if (!dx && !dy) { this.player.anims.stop(); this.player.setFrame(DIR_ROW[this.facing] * 4); return; }
     // a folha só tem 4 direções: na diagonal o corpo vira pro lado
     this.facing = dx ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up";
-    this.player.anims.play(`walk-${this.facing}`, true);
+    this.player.anims.play(`${this.char}-walk-${this.facing}`, true);
     const free = (x: number, y: number) => x >= 0 && y >= 0 && x < MAP_W && y < MAP_H && !this.solid[y][x];
     const { x, y } = this.tile;
     // diagonal não corta quina de obstáculo; se bater, desliza pelo eixo que estiver livre

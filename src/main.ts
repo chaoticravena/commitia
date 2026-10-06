@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { TitleScene } from "./game/TitleScene.ts";
 import { VillageScene } from "./game/VillageScene.ts";
 
 // Pixel art nítida: o canvas usa pixels REAIS da tela (considerando a escala do Windows, ex. 125%)
@@ -8,6 +9,9 @@ const devicePx = () => ({
   h: Math.floor(innerHeight * devicePixelRatio),
 });
 
+// a fonte pixelada precisa estar carregada antes do primeiro texto, senão o Phaser desenha com a padrão
+await document.fonts.load('8px "Press Start 2P"').catch(() => {});
+
 const game = new Phaser.Game({
   type: Phaser.WEBGL,
   parent: "game",
@@ -15,7 +19,7 @@ const game = new Phaser.Game({
   pixelArt: true,
   backgroundColor: "#1b1730",
   scale: { mode: Phaser.Scale.NONE },
-  scene: [VillageScene],
+  scene: [TitleScene, VillageScene],
 });
 
 function fit() {

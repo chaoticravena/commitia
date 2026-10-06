@@ -11,6 +11,7 @@ Layout (16 colunas de 16 px), o mesmo que src/game/map.ts usa:
 Uso: python art/tools/build_ground.py            |  python art/tools/build_ground.py --selftest
 """
 import math
+import random
 import sys
 from pathlib import Path
 
@@ -63,6 +64,43 @@ def to_ramp(img: Image.Image, ramp, shift: int, only=None) -> Image.Image:
     return out
 
 
+# Grama feita por código: a textura do Gemini era lisa e ficava cinza na paleta. Aqui cada tile tem
+# base fresca + pontinhos claros/escuros + tufos com ponta iluminada; os floridos ganham trevos e flores.
+# Nada cruza a borda do tile com variação de base, então qualquer vizinho emenda.
+GRASS = {"base": (147, 204, 143), "dark": (111, 174, 121), "deep": (79, 143, 99), "light": (181, 224, 166), "tip": (214, 240, 192)}
+FLOWERS = [(247, 220, 211), (242, 184, 198), (247, 217, 160), (200, 189, 230)]
+TUFT = [(1, -2, "tip"), (0, -1, "dark"), (1, -1, "light"), (2, -1, "dark"), (0, 0, "deep"), (1, 0, "dark"), (2, 0, "deep")]
+FLOWER = [(1, 0, None), (0, 1, None), (2, 1, None), (1, 2, None), (1, 1, "tip")]  # 4 pétalas + miolo
+
+
+def grass_tile(seed: int, flowers: bool) -> Image.Image:
+    rnd = random.Random(seed)
+    tile = Image.new("RGBA", (T, T), (*GRASS["base"], 255))
+    px = tile.load()
+    for _ in range(rnd.randint(7, 11)):
+        px[rnd.randrange(T), rnd.randrange(T)] = (*GRASS["light"], 255)
+    for _ in range(rnd.randint(4, 7)):
+        px[rnd.randrange(T), rnd.randrange(T)] = (*GRASS["dark"], 255)
+    for _ in range(rnd.randint(0, 2)):
+        x, y = rnd.randrange(1, T - 4), rnd.randrange(3, T - 1)
+        for dx, dy, c in TUFT:
+            px[x + dx, y + dy] = (*GRASS[c], 255)
+    if flowers:
+        for _ in range(rnd.randint(1, 2)):
+            x, y, col = rnd.randrange(0, T - 3), rnd.randrange(0, T - 3), rnd.choice(FLOWERS)
+            for dx, dy, c in FLOWER:
+                px[x + dx, y + dy] = (*(GRASS[c] if c else col), 255)
+    return tile
+
+
+def grass_texture(flowers: bool) -> Image.Image:
+    """128x128 de tiles independentes, no mesmo formato que build() recorta."""
+    tex = Image.new("RGBA", (128, 128))
+    for i in range(64):
+        tex.paste(grass_tile(i + (1000 if flowers else 0), flowers), ((i % 8) * T, (i // 8) * T))
+    return tex
+
+
 def texture(name: str) -> Image.Image:
     """Textura do Gemini -> pixels reais na paleta, recortada num período (128 px) que emenda."""
     src = Image.open(ROOT / f"art/inbox/{name}.jpeg")
@@ -90,8 +128,8 @@ def edge_tile(role: str, grass: Image.Image, dirt: Image.Image, rim_g, rim_d) ->
 
 def build() -> Image.Image:
     ramps = load_ramps()
-    rim_g, rim_d = ramps["Grama / folhas"][1], ramps["Madeira / terra"][1]  # divisa um tom abaixo do novo chão
-    grass, flowers, dirt = texture("grama-textura"), texture("grama-florida"), texture("terra-textura")
+    rim_g, rim_d = GRASS["deep"], ramps["Madeira / terra"][1]  # divisa um tom abaixo de cada chão
+    grass, flowers, dirt = grass_texture(False), grass_texture(True), texture("terra-textura")
     sheet = Image.new("RGBA", (COLS * T, 6 * T))
     for role, (c, r) in ROLES.items():
         sheet.paste(edge_tile(role, grass.crop((0, 0, T, T)), dirt.crop((0, 0, T, T)), rim_g, rim_d), (c * T, r * T))
@@ -107,6 +145,9 @@ def selftest():
     assert is_dirt("c", 0, 0) and not is_dirt("t", 8, 0) and is_dirt("t", 8, 15)
     assert not is_dirt("tl", 0, 0) and is_dirt("tl", 15, 15)
     assert not is_dirt("grassBR", 15, 15) and is_dirt("grassBR", 0, 0)
+    t = grass_tile(1, True)
+    assert t.size == (T, T) and t.getchannel("A").getextrema() == (255, 255), "tile de grama com buraco"
+    assert grass_tile(5, False).tobytes() == grass_tile(5, False).tobytes(), "grama não é determinística"
     print("selftest ok")
 
 

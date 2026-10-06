@@ -8,15 +8,15 @@ const commits = (ws: Workspace) => ws.repo ? [...ws.repo.objects.values()].filte
 const detached = (ws: Workspace) => !!ws.repo && "detached" in ws.repo.head;
 const built = (ws: Workspace) => houses(ws.work).size + flowers(ws.work).size > 0;
 
-export const STEPS: { label: string; done: (ws: Workspace, p: Progress) => boolean }[] = [
-  { label: "Fale com a Profa. Commit", done: (_, p) => p.talked },
-  { label: "git init", done: ws => !!ws.repo },
-  { label: "Construa algo", done: ws => built(ws) || commits(ws) > 0 },
-  { label: "git add", done: ws => !!ws.repo && (Object.keys(ws.repo.index).length > 0) },
-  { label: "git commit", done: ws => commits(ws) >= 1 },
-  { label: "Mude e salve de novo", done: ws => commits(ws) >= 2 },
-  { label: "Visite o passado", done: (ws, p) => p.visitedPast || detached(ws) },
-  { label: "Volte ao presente", done: (ws, p) => p.visitedPast && !detached(ws) },
+export const STEPS: { label: { pt: string; en: string }; done: (ws: Workspace, p: Progress) => boolean }[] = [
+  { label: { pt: "Fale com a Profa. Commit", en: "Talk to Prof. Commit" }, done: (_, p) => p.talked },
+  { label: { pt: "git init", en: "git init" }, done: ws => !!ws.repo },
+  { label: { pt: "Construa algo", en: "Build something" }, done: ws => built(ws) || commits(ws) > 0 },
+  { label: { pt: "git add", en: "git add" }, done: ws => !!ws.repo && (Object.keys(ws.repo.index).length > 0) },
+  { label: { pt: "git commit", en: "git commit" }, done: ws => commits(ws) >= 1 },
+  { label: { pt: "Mude e salve de novo", en: "Change and save again" }, done: ws => commits(ws) >= 2 },
+  { label: { pt: "Visite o passado", en: "Visit the past" }, done: (ws, p) => p.visitedPast || detached(ws) },
+  { label: { pt: "Volte ao presente", en: "Come back to the present" }, done: (ws, p) => p.visitedPast && !detached(ws) },
 ];
 
 export const currentStep = (ws: Workspace, p: Progress) => STEPS.findIndex(s => !s.done(ws, p));
@@ -28,11 +28,11 @@ const LINES: Record<"pt" | "en", string[][]> = {
     [
       "Olá! Eu sou a Professora Commit. Que bom ter você em Commitia!",
       "Esta vila esqueceu tudo o que já foi. Nenhum momento dela está guardado.",
-      "Vamos dar uma memória a ela. Abra o grimório e digite: git init",
+      "Vamos dar uma memória a ela. Aperte G pra abrir o grimório e digite: git init",
     ],
     [
       "O primeiro passo é dar uma memória à vila.",
-      "Abra o grimório e digite: git init",
+      "Aperte G pra abrir o grimório e digite: git init",
     ],
     [
       "Agora a vila tem um repositório! Ele vai lembrar de cada momento que você salvar.",
@@ -67,11 +67,11 @@ const LINES: Record<"pt" | "en", string[][]> = {
     [
       "Hello! I'm Professor Commit. So glad to have you in Commitia!",
       "This village has forgotten everything it ever was. Not a single moment is saved.",
-      "Let's give it a memory. Open the spellbook and type: git init",
+      "Let's give it a memory. Press G to open the spellbook and type: git init",
     ],
     [
       "The first step is giving the village a memory.",
-      "Open the spellbook and type: git init",
+      "Press G to open the spellbook and type: git init",
     ],
     [
       "Now the village has a repository! It will remember every moment you save.",

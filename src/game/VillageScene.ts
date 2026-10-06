@@ -5,6 +5,7 @@ import { professora } from "./act1.ts";
 import { store } from "./store.ts";
 import { loadSettings } from "./TitleScene.ts";
 import type { UIScene } from "./UIScene.ts";
+import { grimoire } from "./grimoire.ts";
 import { BRIDGE, LOTS, MAP_H, MAP_W, RIVER_H, RIVER_Y, ROAD, T, TILES, WATER_FRAME_B, WATER_SET, autotile, dirtGrid, riverGrid } from "./map.ts";
 
 type Dir = "down" | "up" | "left" | "right";
@@ -193,6 +194,12 @@ export class VillageScene extends Phaser.Scene {
     for (const [dir, ks] of Object.entries(this.keys)) ks.forEach(key => key.on("down", () => { this.queued = dir as Dir; }));
     // Espaço, Enter ou E: conversar (ou avançar a fala)
     [K.SPACE, K.ENTER, K.E].forEach(k => kb.addKey(k).on("down", () => this.interact()));
+    // G abre o grimório; enquanto ele está aberto, o teclado é dele (WASD vira letra, não passo)
+    kb.addKey(K.G).on("down", () => { if (!this.ui.open) grimoire.open(); });
+    const onGrimoire = () => { kb.enabled = !grimoire.isOpen; kb.resetKeys(); };
+    grimoire.addEventListener("change", onGrimoire);
+    grimoire.showButton(true);
+    this.events.once("shutdown", () => { grimoire.removeEventListener("change", onGrimoire); grimoire.showButton(false); });
     if (!this.scene.isActive("ui")) this.scene.launch("ui");
   }
 

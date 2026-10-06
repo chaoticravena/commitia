@@ -1,5 +1,8 @@
 import Phaser from "phaser";
 import { loadSettings } from "./TitleScene.ts";
+import { STEPS, currentStep } from "./act1.ts";
+import { grimoire } from "./grimoire.ts";
+import { store } from "./store.ts";
 
 // Caixa de diálogo por cima da vila, no mesmo estilo dos botões do título: painel creme com borda
 // de madeira, retrato num quadrinho, plaquinha com o nome, texto letra a letra com "blip".
@@ -26,6 +29,8 @@ export class UIScene extends Phaser.Scene {
   private shown = 0;
   private typing?: Phaser.Time.TimerEvent;
   private onDone?: () => void;
+  private goal!: Phaser.GameObjects.Text;
+  private goalBg!: Phaser.GameObjects.Graphics;
 
   constructor() { super("ui"); }
 
@@ -61,6 +66,15 @@ export class UIScene extends Phaser.Scene {
     this.box = this.add.container(0, 0, [g, tag, this.face, this.name, this.text, this.arrow]).setVisible(false);
     this.box.setData("tag", tag);
 
+    // objetivo atual no canto: avança sozinho a cada comando certo
+    this.goalBg = this.add.graphics();
+    this.goal = this.add.text(10, 9, "", FONT);
+    const refresh = () => this.refreshGoal();
+    store.on(refresh);
+    grimoire.addEventListener("change", refresh);
+    this.events.once("shutdown", () => grimoire.removeEventListener("change", refresh));
+    this.refreshGoal();
+
     this.layout();
     this.scale.on("resize", this.layout, this);
     this.events.once("shutdown", () => this.scale.off("resize", this.layout, this));
@@ -93,6 +107,15 @@ export class UIScene extends Phaser.Scene {
     this.next();
   }
 
+  refreshGoal() {
+    const lang = loadSettings().lang;
+    const i = currentStep(store.ws, store.progress);
+    const label = i < 0 ? (lang === "pt" ? "Ato 1 completo!" : "Act 1 complete!") : STEPS[i].label[lang];
+    this.goal.setText(`${lang === "pt" ? "Objetivo" : "Goal"}: ${label}`);
+    const w = this.goal.width + 12;
+    this.goalBg.clear().fillStyle(C.woodDark).fillRect(4, 4, w + 2, 18).fillStyle(C.wood).fillRect(5, 5, w, 16).fillStyle(C.cream).fillRect(6, 6, w - 2, 14);
+  }
+
   advance() {
     if (this.typing) return this.finish();
     this.next();
@@ -103,7 +126,8 @@ export class UIScene extends Phaser.Scene {
     if (page === undefined) {
       this.box.setVisible(false);
       const done = this.onDone; this.onDone = undefined;
-      return done?.();
+      done?.();
+      return this.refreshGoal();
     }
     this.full = page;
     this.shown = 0;

@@ -2,7 +2,7 @@
 
 export const T = 16; // tamanho do tile em pixels
 export const MAP_W = 30;
-export const MAP_H = 20;
+export const MAP_H = 22;
 
 // Índices no ground.png (16 colunas), gerado por art/tools/build_ground.py. Terra sobre grama.
 const DIRT = {
@@ -19,15 +19,16 @@ const DIRT_FILL = range(80, 16);
 export type Rect = { x: number; y: number; w: number; h: number };
 
 // Áreas de terra: praça, estrada até a borda sul e os lotes das casas.
-export const PLAZA: Rect = { x: 11, y: 9, w: 8, h: 5 };
-export const ROAD: Rect = { x: 14, y: 13, w: 2, h: 7 };
+export const PLAZA: Rect = { x: 11, y: 11, w: 8, h: 5 };
+export const ROAD: Rect = { x: 14, y: 15, w: 2, h: 7 };
+// lotes de 6 tiles: casas com ~3 personagens de altura, proporção de RPG
 export const LOTS: Rect[] = [
-  { x: 3, y: 3, w: 4, h: 4 },
-  { x: 9, y: 3, w: 4, h: 4 },
-  { x: 17, y: 3, w: 4, h: 4 },
-  { x: 23, y: 3, w: 4, h: 4 },
+  { x: 1, y: 3, w: 6, h: 6 },
+  { x: 8, y: 3, w: 6, h: 6 },
+  { x: 16, y: 3, w: 6, h: 6 },
+  { x: 23, y: 3, w: 6, h: 6 },
 ];
-export const PATHS: Rect[] = [PLAZA, ROAD, { x: 4, y: 7, w: 22, h: 2 }]; // a rua dos lotes encosta na praça
+export const PATHS: Rect[] = [PLAZA, ROAD, { x: 1, y: 9, w: 28, h: 2 }]; // a rua dos lotes encosta na praça
 
 const inside = (r: Rect, x: number, y: number) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 

@@ -14,7 +14,7 @@ const IMAGES = [
 export class VillageScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
   private buddy!: Phaser.GameObjects.Image;
-  private tile = { x: 15, y: 15 };
+  private tile = { x: 15, y: 17 };
   private facing: Dir = "up";
   private moving = false;
   private solid: boolean[][] = [];
@@ -47,22 +47,22 @@ export class VillageScene extends Phaser.Scene {
     // casas nos lotes (no jogo isso vem de casas.txt)
     const casas = ["casa-pedra-rosa", "casa-madeira", null, "casa-padaria"];
     LOTS.forEach((lot, i) => { if (casas[i]) this.place(casas[i]!, lot.x, lot.y + lot.h - 1, 2); });
-    this.place("caixa-correio", 7, 6);
-    this.place("cerca", 17, 6);
+    this.place("caixa-correio", 7, 8);
+    this.place("cerca", 17, 8);
 
     // praça: Pedra do Tempo, torre do relógio e postes
-    this.place("pedra-do-tempo", 14, 11, 2);
-    this.place("torre-relogio", 21, 12, 2);
-    this.place("poste-lanterna", 10, 10);
-    this.place("poste-lanterna", 18, 9);
+    this.place("pedra-do-tempo", 14, 13, 2);
+    this.place("torre-relogio", 22, 19, 2);
+    this.place("poste-lanterna", 10, 12);
+    this.place("poste-lanterna", 18, 11);
 
     // vegetação
-    [[5, 12], [24, 15], [8, 16], [20, 17], [3, 9]].forEach(([x, y]) => this.place("arbusto", x, y));
-    [[3, 14], [6, 17], [25, 11], [22, 16], [9, 13], [17, 16], [26, 17]].forEach(([x, y]) => this.place("capim-alto", x, y, 0));
+    [[5, 14], [25, 13], [8, 18], [19, 19], [3, 12]].forEach(([x, y]) => this.place("arbusto", x, y));
+    [[3, 16], [6, 19], [26, 12], [9, 15], [17, 18], [27, 18]].forEach(([x, y]) => this.place("capim-alto", x, y, 0));
 
     // Professora Commit
-    this.add.sprite(19 * T + 8, 12 * T + T, "professora", 0).setOrigin(0.5, 1).setDepth(13 * T);
-    this.solid[12][19] = true;
+    this.add.sprite(19 * T + 8, 14 * T + T, "professora", 0).setOrigin(0.5, 1).setDepth(15 * T);
+    this.solid[14][19] = true;
 
     // jogadora + Gitinho
     for (const [dir, row] of Object.entries(DIR_ROW)) {

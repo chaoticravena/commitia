@@ -179,20 +179,31 @@ export class VillageScene extends Phaser.Scene {
 
   update() {
     if (this.moving) return;
-    const dir = (Object.keys(this.keys) as Dir[]).find(d => this.keys[d].some(k => k.isDown)) ?? this.queued;
+    // teclas seguradas somam: W+A anda na diagonal; opostas se anulam
+    const held = (d: Dir) => this.keys[d].some(k => k.isDown);
+    let dx = (held("right") ? 1 : 0) - (held("left") ? 1 : 0);
+    let dy = (held("down") ? 1 : 0) - (held("up") ? 1 : 0);
+    if (!dx && !dy && this.queued) { dx = this.queued === "right" ? 1 : this.queued === "left" ? -1 : 0; dy = this.queued === "down" ? 1 : this.queued === "up" ? -1 : 0; }
     this.queued = null;
-    if (!dir) { this.player.anims.stop(); this.player.setFrame(DIR_ROW[this.facing] * 4); return; }
-    this.facing = dir;
-    const nx = this.tile.x + (dir === "left" ? -1 : dir === "right" ? 1 : 0);
-    const ny = this.tile.y + (dir === "up" ? -1 : dir === "down" ? 1 : 0);
-    this.player.anims.play(`walk-${dir}`, true);
-    if (nx < 0 || ny < 0 || nx >= MAP_W || ny >= MAP_H || this.solid[ny][nx]) return;
+    if (!dx && !dy) { this.player.anims.stop(); this.player.setFrame(DIR_ROW[this.facing] * 4); return; }
+    // a folha só tem 4 direções: na diagonal o corpo vira pro lado
+    this.facing = dx ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up";
+    this.player.anims.play(`walk-${this.facing}`, true);
+    const free = (x: number, y: number) => x >= 0 && y >= 0 && x < MAP_W && y < MAP_H && !this.solid[y][x];
+    const { x, y } = this.tile;
+    // diagonal não corta quina de obstáculo; se bater, desliza pelo eixo que estiver livre
+    if (dx && dy && !(free(x + dx, y + dy) && free(x + dx, y) && free(x, y + dy))) {
+      if (free(x + dx, y)) dy = 0; else if (free(x, y + dy)) dx = 0; else return;
+    }
+    const nx = x + dx, ny = y + dy;
+    if (!free(nx, ny)) return;
     this.moving = true;
     const prev = this.tile;
     this.tile = { x: nx, y: ny };
-    this.tweens.add({ targets: this.player, x: nx * T + 8, y: (ny + 1) * T, duration: STEP_MS, onComplete: () => { this.moving = false; } });
+    const ms = dx && dy ? Math.round(STEP_MS * Math.SQRT2) : STEP_MS; // mesma velocidade em qualquer direção
+    this.tweens.add({ targets: this.player, x: nx * T + 8, y: (ny + 1) * T, duration: ms, onComplete: () => { this.moving = false; } });
     if (this.dirt[ny][nx]) this.ambient.stepDust(nx * T + 8, (ny + 1) * T);
     // o Gitinho vai pra onde você estava, como um seguidor de Pokémon
-    this.tweens.add({ targets: this.buddy, x: prev.x * T + 8, y: (prev.y + 1) * T, duration: STEP_MS });
+    this.tweens.add({ targets: this.buddy, x: prev.x * T + 8, y: (prev.y + 1) * T, duration: ms });
   }
 }

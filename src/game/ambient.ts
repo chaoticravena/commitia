@@ -5,7 +5,7 @@ import Phaser from "phaser";
 // só se movem e desbotam; nunca giram nem mudam de escala.
 
 const C = {
-  petal: [0xe3a3bd, 0xf7dcd3], leaf: [0x739586, 0x9dbfb0], dust: 0x947a70,
+  petal: [0xe3a3bd, 0xf7dcd3], lilac: [0xc8bde6, 0xf7dcd3], leaf: [0x739586, 0x9dbfb0], dust: 0x947a70,
   wings: [0xfcf4ee, 0xe3a3bd, 0xebd6b5], body: 0x443c53,
 };
 
@@ -19,6 +19,7 @@ function pixelTexture(scene: Phaser.Scene, key: string, w: number, h: number, dr
 
 function makeTextures(scene: Phaser.Scene) {
   C.petal.forEach((c, i) => pixelTexture(scene, `petal${i}`, 2, 1, g => g.fillStyle(c).fillRect(0, 0, 2, 1)));
+  C.lilac.forEach((c, i) => pixelTexture(scene, `lilac${i}`, 2, 1, g => g.fillStyle(c).fillRect(0, 0, 2, 1)));
   C.leaf.forEach((c, i) => pixelTexture(scene, `leaf${i}`, 2, 2, g => g.fillStyle(c).fillRect(0, 0, 2, 1).fillRect(1, 1, 1, 1)));
   pixelTexture(scene, "dust", 1, 1, g => g.fillStyle(C.dust).fillRect(0, 0, 1, 1));
   C.wings.forEach((c, i) => {
@@ -38,7 +39,7 @@ export function addAmbient(scene: Phaser.Scene, trees: Tree[], area: Phaser.Geom
   trees.forEach(({ img, flowering }, i) => {
     if (!flowering && i % 3) return;
     const canopy = new Phaser.Geom.Rectangle(img.x + 6, img.y - img.height + 6, img.width - 12, img.height * 0.45);
-    const kind = flowering ? "petal" : "leaf";
+    const kind = !flowering ? "leaf" : img.texture.key === "arvore-lavanda" ? "lilac" : "petal";
     scene.add.particles(0, 0, `${kind}${i % 2}`, {
       emitZone: {
         type: "random",

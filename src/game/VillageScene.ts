@@ -10,7 +10,10 @@ const SPRITES = "/assets/sprites"; // arte própria, já na paleta
 const IMAGES = [
   "arvore-grande", "arvore-florida", "casa-pedra-rosa", "casa-madeira", "casa-padaria", "torre-relogio",
   "pedra-do-tempo", "poste-lanterna", "cerca", "arbusto", "capim-alto", "caixa-correio", "gitinho",
+  "arvore-pinheiro", "arvore-lavanda", "arbusto-hortensia", "arbusto-frutinhas", "toco-cogumelos", "pedrinhas",
+  "canteiro-flores", "placa-madeira", "lote-vazio",
 ];
+const FLOWERING = ["arvore-florida", "arvore-lavanda"];
 
 export class VillageScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
@@ -39,9 +42,12 @@ export class VillageScene extends Phaser.Scene {
     this.solid = Array.from({ length: MAP_H }, () => new Array<boolean>(MAP_W).fill(false));
 
     // moldura de árvores sobrepostas (a vila é uma clareira na mata)
-    const trees = ["arvore-grande", "arvore-grande", "arvore-florida"];
+    const trees = ["arvore-grande", "arvore-pinheiro", "arvore-florida", "arvore-grande", "arvore-lavanda", "arvore-pinheiro"];
     const placed: { img: Phaser.GameObjects.Image; flowering: boolean }[] = [];
-    const tree = (x: number, bottom: number) => { const key = trees[k++ % 3]; placed.push({ img: this.place(key, x, bottom), flowering: key === "arvore-florida" }); };
+    const tree = (x: number, bottom: number) => {
+      const key = trees[k++ % trees.length];
+      placed.push({ img: this.place(key, x, bottom, 1, 0.6), flowering: FLOWERING.includes(key) });
+    };
     let k = 0;
     for (let x = -1; x < MAP_W; x += 2) {
       tree(x, 1 + (x % 4 === 1 ? 1 : 0));
@@ -50,10 +56,12 @@ export class VillageScene extends Phaser.Scene {
     for (let y = 3; y < MAP_H - 1; y += 2) { tree(-1, y); tree(MAP_W - 2, y); }
 
     // casas nos lotes (no jogo isso vem de casas.txt)
-    const casas = ["casa-pedra-rosa", "casa-madeira", null, "casa-padaria"];
-    LOTS.forEach((lot, i) => { if (casas[i]) this.place(casas[i]!, lot.x, lot.y + lot.h - 1, 2); });
+    const casas = ["casa-pedra-rosa", "casa-madeira", "lote-vazio", "casa-padaria"];
+    LOTS.forEach((lot, i) => {
+      const vazio = casas[i] === "lote-vazio"; // o lote da primeira casa que você vai commitar
+      this.place(casas[i], lot.x, lot.y + lot.h - 1, vazio ? 0 : 2, vazio ? 0 : 0.95);
+    });
     this.place("caixa-correio", 7, 8);
-    this.place("cerca", 17, 8);
 
     // praça: Pedra do Tempo, torre do relógio e postes
     this.place("pedra-do-tempo", 14, 13, 2);
@@ -62,12 +70,20 @@ export class VillageScene extends Phaser.Scene {
     [[10, 12], [18, 11], [5, 11], [24, 11], [15, 8], [22, 8], [13, 18], [16, 18]]
       .forEach(([x, y]) => this.place("poste-lanterna", x, y));
 
-    // vegetação
-    [[5, 14], [25, 13], [8, 18], [19, 19], [3, 12]].forEach(([x, y]) => this.place("arbusto", x, y));
-    [[3, 16], [6, 19], [26, 12], [9, 15], [17, 18], [27, 18]].forEach(([x, y]) => this.place("capim-alto", x, y, 0));
+    // vegetação e detalhes: quase nenhum pedaço de grama fica liso
+    ([[5, 14, "arbusto"], [25, 13, "arbusto-hortensia"], [8, 18, "arbusto-frutinhas"], [19, 19, "arbusto-hortensia"],
+      [3, 12, "arbusto-frutinhas"], [20, 16, "arbusto"]] as const).forEach(([x, y, key]) => this.place(key, x, y));
+    [[3, 16], [6, 19], [26, 12], [9, 15], [17, 18], [27, 18]].forEach(([x, y]) => this.place("capim-alto", x, y, 0, 0));
+    [[2, 11], [8, 11], [20, 11], [27, 11], [10, 17], [4, 18], [26, 16], [12, 19], [21, 13]]
+      .forEach(([x, y]) => this.place("canteiro-flores", x, y, 0, 0));
+    [[7, 14], [25, 17], [11, 20], [17, 16]].forEach(([x, y]) => this.place("pedrinhas", x, y));
+    [[2, 14], [26, 14]].forEach(([x, y]) => this.place("toco-cogumelos", x, y));
+    this.place("placa-madeira", 12, 17);
+    this.place("cerca", 5, 16);
 
     // Professora Commit
     this.add.sprite(19 * T + 8, 14 * T + T, "professora", 0).setOrigin(0.5, 1).setDepth(15 * T);
+    this.shadow(19 * T + 8, 15 * T - 1, 12);
     this.solid[14][19] = true;
 
     // jogadora + Gitinho
@@ -79,13 +95,24 @@ export class VillageScene extends Phaser.Scene {
     // "respira" quicando 1 pixel; nunca escala fracionada (distorce os pixels)
     this.buddy.setData("bob", 0);
     this.time.addEvent({ delay: 400, loop: true, callback: () => this.buddy.setData("bob", this.buddy.getData("bob") ? 0 : 1) });
+    const shadows = [this.shadow(0, 0, 12), this.shadow(0, 0, 10)];
     this.events.on("update", () => {
+      shadows[0].setPosition(this.player.x, this.player.y - 1);
+      shadows[1].setPosition(this.buddy.x, this.buddy.y - 1);
       this.player.setDepth(this.player.y);
       this.buddy.setDepth(this.buddy.y);
       this.buddy.setDisplayOrigin(this.buddy.width / 2, this.buddy.height + this.buddy.getData("bob"));
     });
 
     this.ambient = addAmbient(this, placed, new Phaser.Geom.Rectangle(2 * T, 3 * T, (MAP_W - 4) * T, (MAP_H - 6) * T));
+
+    // luz quente das lanternas e bordas da tela levemente escurecidas
+    this.children.list.filter(o => (o as Phaser.GameObjects.Image).texture?.key === "poste-lanterna").forEach(o => {
+      const post = o as Phaser.GameObjects.Image;
+      const glow = this.add.image(post.x + 12, post.y - post.height + 10, this.glowTexture()).setBlendMode(Phaser.BlendModes.ADD).setDepth(post.depth + 1);
+      this.tweens.add({ targets: glow, alpha: 0.75, duration: 900 + Math.random() * 600, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+    });
+    this.cameras.main.filters.external.addVignette(0.5, 0.5, 0.75, 0.15, 0x9a8fb0, Phaser.BlendModes.MULTIPLY); // escurece ~17% nos cantos, nada no centro
 
     this.cameras.main.setBounds(0, 0, MAP_W * T, MAP_H * T).startFollow(this.player, true).setRoundPixels(true);
     // zoom inteiro que mostra pelo menos 320x180 pixels do mundo
@@ -103,13 +130,50 @@ export class VillageScene extends Phaser.Scene {
   }
 
   // Põe um sprite com a base na linha `bottom` (em tiles), a partir da coluna x, e marca `solidRows` linhas da base como sólidas.
-  private place(key: string, x: number, bottom: number, solidRows = 1) {
+  // shadow: largura da sombra de contato como fração da largura do sprite (0 = sem sombra).
+  private place(key: string, x: number, bottom: number, solidRows = 1, shadow = 0.8) {
     const img = this.add.image(x * T, (bottom + 1) * T, key).setOrigin(0, 1).setDepth((bottom + 1) * T);
+    if (shadow) this.shadow(img.x + img.width / 2, img.y - 1, Math.round(img.width * shadow));
     const w = Math.ceil(img.width / T);
     for (let yy = bottom - solidRows + 1; yy <= bottom; yy++)
       for (let xx = x; xx < x + w; xx++)
         if (yy >= 0 && yy < MAP_H && xx >= 0 && xx < MAP_W) this.solid[yy][xx] = true;
     return img;
+  }
+
+  // Sombra de contato: elipse em pixels inteiros, meio transparente, logo acima do chão.
+  private shadow(x: number, y: number, w: number) {
+    const key = `shadow${w}`;
+    const h = Math.max(3, Math.round(w / 5));
+    if (!this.textures.exists(key)) {
+      const g = this.make.graphics({}, false).fillStyle(0x443c53);
+      for (let row = 0; row < h; row++) {
+        const dy = (row + 0.5 - h / 2) / (h / 2);
+        const half = Math.round((w / 2) * Math.sqrt(1 - dy * dy));
+        g.fillRect(Math.round(w / 2) - half, row, half * 2, 1);
+      }
+      g.generateTexture(key, w, h);
+      g.destroy();
+    }
+    return this.add.image(Math.round(x), Math.round(y), key).setOrigin(0.5, 0.5).setAlpha(0.28).setDepth(1);
+  }
+
+  // Halo das lanternas em anéis de pixel (degraus duros, nada de gradiente borrado).
+  private glowTexture() {
+    if (!this.textures.exists("glow")) {
+      const R = 18;
+      const g = this.make.graphics({}, false);
+      [[R, 0.07], [12, 0.1], [7, 0.16]].forEach(([r, a]) => {
+        g.fillStyle(0xf7d9a0, a);
+        for (let y = -r; y < r; y++) {
+          const half = Math.round(Math.sqrt(r * r - (y + 0.5) ** 2));
+          g.fillRect(R - half, R + y, half * 2, 1);
+        }
+      });
+      g.generateTexture("glow", R * 2, R * 2);
+      g.destroy();
+    }
+    return "glow";
   }
 
   update() {

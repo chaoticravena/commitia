@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Inspetor de tiles</title>
+<style>
+  body { background: #222; color: #ddd; font: 12px monospace; margin: 16px; }
+  select, input { font: inherit; }
+  canvas { image-rendering: pixelated; display: block; margin-top: 8px; }
+</style>
+</head>
+<body>
+<!-- Ferramenta de dev: mostra cada tileset com grade 16x16 e o índice de cada tile (o mesmo índice que o Phaser usa). -->
+<select id="set"></select> zoom <input id="zoom" type="number" value="3" min="1" max="6" style="width:3em"> <span id="info"></span>
+<canvas id="c"></canvas>
+<script type="module">
+const SETS = ["TilesetFloor", "TilesetNature", "TilesetHouse", "TilesetWater", "TilesetElement", "TilesetField", "TilesetFloorDetail", "TilesetVillageAbandoned", "TilesetRelief"];
+const sel = document.getElementById("set"), zoom = document.getElementById("zoom"), cv = document.getElementById("c"), g = cv.getContext("2d");
+SETS.forEach(s => sel.add(new Option(s, s)));
+const params = new URLSearchParams(location.search);
+if (params.get("set")) sel.value = params.get("set");
+if (params.get("zoom")) zoom.value = params.get("zoom");
+
+function draw() {
+  const img = new Image();
+  img.src = `/assets/tiles/${sel.value}.png`;
+  img.onload = () => {
+    const z = +zoom.value, T = 16, cols = Math.floor(img.width / T), rows = Math.floor(img.height / T);
+    // recorte opcional em tiles: ?c0=&r0=&w=&h=
+    const c0 = +(params.get("c0") ?? 0), r0 = +(params.get("r0") ?? 0);
+    const w = +(params.get("w") ?? cols - c0), h = +(params.get("h") ?? rows - r0);
+    cv.width = w * T * z; cv.height = h * T * z;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, c0 * T, r0 * T, w * T, h * T, 0, 0, cv.width, cv.height);
+    g.strokeStyle = "#ff00ff55"; g.font = `${Math.max(8, z * 3)}px monospace`;
+    for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) {
+      g.strokeRect(c * T * z + .5, r * T * z + .5, T * z, T * z);
+      const i = (r + r0) * cols + c + c0;
+      g.fillStyle = "#000a"; g.fillRect(c * T * z + 1, r * T * z + 1, String(i).length * z * 2 + 2, z * 3 + 1);
+      g.fillStyle = "#fff"; g.fillText(i, c * T * z + 2, r * T * z + z * 3);
+    }
+    document.getElementById("info").textContent = `${img.width}x${img.height} · ${cols} colunas x ${rows} linhas`;
+  };
+}
+sel.onchange = zoom.onchange = draw;
+draw();
+</script>
+</body>
+</html>

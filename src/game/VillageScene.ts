@@ -16,7 +16,7 @@ const STEP_MS = 180;
 const PROF = { x: 19, y: 14 }; // tile da Professora Commit
 const SPRITE: Record<string, string> = {
   pedra: "casa-pedra-rosa", madeira: "casa-madeira", padaria: "casa-padaria",
-  floricultura: "casa-floricultura", cha: "casa-cha", biblioteca: "casa-biblioteca", moinho: "casa-moinho",
+  floricultura: "casa-floricultura", cha: "casa-cha", biblioteca: "casa-biblioteca", moinho: "casa-moinho-corpo",
 };
 // centro da porta (px a partir da esquerda do sprite), medido em cada desenho
 const DOOR_X: Record<string, number> = { pedra: 40.5, madeira: 48.5, padaria: 47.5, floricultura: 64.5, cha: 54.3, biblioteca: 53.3, moinho: 49.5 };
@@ -32,7 +32,7 @@ const png = (name: string) => `${SPRITES}/${name}.png?v=${import.meta.env.VITE_B
 
 const IMAGES = [
   "arvore-grande", "arvore-florida", "casa-pedra-rosa", "casa-madeira", "casa-padaria", "torre-relogio",
-  "casa-floricultura", "casa-cha", "casa-biblioteca", "casa-moinho",
+  "casa-floricultura", "casa-cha", "casa-biblioteca", "casa-moinho-corpo",
   "pedra-do-tempo", "poste-lanterna", "cerca", "arbusto", "capim-alto", "caixa-correio",
   "arvore-pinheiro", "arvore-lavanda", "arbusto-hortensia", "arbusto-frutinhas", "toco-cogumelos", "pedrinhas",
   "canteiro-flores", "placa-madeira", "lote-vazio", "ponte-madeira",
@@ -72,6 +72,7 @@ export class VillageScene extends Phaser.Scene {
     for (const name of IMAGES) this.load.image(name, png(name));
     for (const [key, c] of Object.entries(CHARS)) this.load.spritesheet(key, png(c.sheet), { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("professora", png("professora-andando"), { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("helice", png("moinho-helice"), { frameWidth: 62, frameHeight: 62 });
     this.load.spritesheet("gitinho", png("gitinho-andando"), { frameWidth: 32, frameHeight: 32 });
     // passos por superfície (Kenney Impact Sounds, CC0): uma pisada por arquivo
     for (const k of ["grass", "carpet", "wood"]) for (let i = 0; i < 5; i++) this.load.audio(`passo-${k}${i}`, `assets/audio/footstep_${k}_00${i}.ogg`);
@@ -136,8 +137,9 @@ export class VillageScene extends Phaser.Scene {
 
     // praça: Pedra do Tempo, torre do relógio e postes
     // a base da pedra é desenhada em ângulo (termina em ponta): sombra larga sob o miolo da base pra ela assentar no chão
-    this.place("pedra-do-tempo", 14, 13, 2, 0);
-    this.shadow(14 * T + 24, 14 * T - 3, 50);
+    // no canto esquerdo da praça: o meio (colunas 14-15) é o caminho da estrada até a rua das casas
+    this.place("pedra-do-tempo", 11, 13, 2, 0);
+    this.shadow(11 * T + 24, 14 * T - 3, 50);
     this.place("torre-relogio", 22, 19, 2);
     // postes espaçados (nunca em par): dois na praça, um na rua dos lotes, um na entrada da estrada
     [[10, 12], [18, 11], [4, 11], [16, 18]]
@@ -319,6 +321,12 @@ export class VillageScene extends Phaser.Scene {
       const bottom = lot.y + lot.h - 1;
       l.img = kind ? this.place(SPRITE[kind] ?? "casa-madeira", lot.x, bottom, l.status === "ghost" ? 0 : 2, 0.95)
         : this.place("lote-vazio", lot.x, bottom, 0, 0);
+      // moinho: a hélice é um sprite à parte, girando no eixo (px 50,46 do corpo); X e + alternando
+      if (kind === "moinho") {
+        if (!this.anims.exists("helice")) this.anims.create({ key: "helice", frames: this.anims.generateFrameNumbers("helice", { frames: [0, 1] }), frameRate: 2.5, repeat: -1 });
+        const sails = this.add.sprite(l.img.x + 50, l.img.y - l.img.height + 46, "helice", 0).setDepth(l.img.depth + 1);
+        if (l.status !== "ghost") sails.play("helice");
+      }
       l.objs = this.children.list.slice(before);
       if (kind) { const dx = doorShift(kind, lot.x, l.img.width); l.objs.forEach(o => { (o as Phaser.GameObjects.Image).x += dx; }); }
       if (l.status === "stg") l.img.setTint(0xb8f0c8);

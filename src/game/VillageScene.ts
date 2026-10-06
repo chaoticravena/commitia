@@ -365,8 +365,8 @@ export class VillageScene extends Phaser.Scene {
     if (loadSettings().sfx) {
       const bridge = inBridgeRow(ny), dirt = this.dirt[ny][nx];
       this.sound.play(`passo${Math.floor(Math.random() * 10)}`, {
-        volume: bridge ? 0.4 : dirt ? 0.3 : 0.18,
-        rate: (bridge ? 1.35 : 1) * (0.92 + Math.random() * 0.16),
+        volume: bridge ? 0.16 : dirt ? 0.12 : 0.07, // bem de fundo: passo é textura, não destaque
+        rate: (bridge ? 1.15 : 1) * (0.96 + Math.random() * 0.08),
       });
     }
     // o Gitinho vai pra onde você estava, como um seguidor de Pokémon

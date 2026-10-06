@@ -4,6 +4,8 @@ import { LOTS, MAP_H, MAP_W, ROAD, T, autotile, dirtGrid } from "./map.ts";
 type Dir = "down" | "up" | "left" | "right";
 const DIR_COL: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // coluna na SpriteSheet do personagem
 const STEP_MS = 180;
+// ponytail: ?pal=pastel troca pra arte recolorida; vira o padrão se a comparação aprovar
+const ART = new URLSearchParams(location.search).get("pal") === "pastel" ? "/assets-pastel" : "/assets";
 
 // Recortes (x, y, w, h) nas folhas do Ninja Adventure.
 const FRAMES = {
@@ -27,12 +29,13 @@ export class VillageScene extends Phaser.Scene {
   constructor() { super("village"); }
 
   preload() {
-    this.load.image("floor", "/assets/tiles/TilesetFloor.png");
-    this.load.image("house", "/assets/tiles/TilesetHouse.png");
-    this.load.image("nature", "/assets/tiles/TilesetNature.png");
-    this.load.spritesheet("boy", "/assets/chars/Boy/SpriteSheet.png", { frameWidth: 16, frameHeight: 16 });
-    this.load.spritesheet("oldwoman", "/assets/chars/OldWoman/SpriteSheet.png", { frameWidth: 16, frameHeight: 16 });
-    this.load.image("shadow", "/assets/chars/Shadow.png");
+    this.load.image("floor", `${ART}/tiles/TilesetFloor.png`);
+    this.load.image("house", `${ART}/tiles/TilesetHouse.png`);
+    this.load.image("nature", `${ART}/tiles/TilesetNature.png`);
+    this.load.spritesheet("boy", `${ART}/chars/Boy/SpriteSheet.png`, { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet("oldwoman", `${ART}/chars/OldWoman/SpriteSheet.png`, { frameWidth: 16, frameHeight: 16 });
+    this.load.image("shadow", `${ART}/chars/Shadow.png`);
+    this.load.image("pedraTempo", `${ART}/sprites/pedra-do-tempo.png`);
   }
 
   create() {
@@ -60,7 +63,8 @@ export class VillageScene extends Phaser.Scene {
     LOTS.forEach((lot, i) => { if (casas[i]) this.prop("house", casas[i]!, lot.x, lot.y + lot.h - 3, 4, 3); });
 
     // Pedra do Tempo no centro da praça
-    this.prop("nature", "pedra", 13, 9, 4, 3);
+    this.add.image(15 * T, 12 * T, "pedraTempo").setOrigin(0.5, 1).setDepth(12 * T);
+    for (let x = 14; x <= 16; x++) this.solid[11][x] = true;
     // flores
     [[21, 11], [22, 12], [23, 11], [8, 12], [7, 11], [24, 15], [6, 15]].forEach(([x, y], i) => this.add.image(x * T, y * T, "nature", `flor${(i % 3) + 1}`).setOrigin(0));
 

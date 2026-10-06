@@ -15,7 +15,7 @@ from pathlib import Path
 
 from PIL import Image
 
-GPL = Path(__file__).resolve().parents[1] / "palette" / "repo-vivo.gpl"
+GPL = Path(__file__).resolve().parents[1] / "palette" / "commitia.gpl"
 SKIP = {"Git (interface)"}  # cores de interface, não entram no mundo
 NEUTRAL_CHROMA = 0.035
 

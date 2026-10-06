@@ -1,6 +1,6 @@
-# Repo Vivo · documento de design
+# Commitia · documento de design
 
-> Nome provisório. Um jogo de navegador pra aprender **Git inteiro**, do `init` ao `bisect`, onde o repositório é um mundo vivo que você vê mudar a cada comando.
+> Um jogo de navegador pra aprender **Git inteiro**, do `init` ao `bisect`, onde o repositório é um mundo vivo que você vê mudar a cada comando.
 
 ## A ideia central
 
@@ -18,7 +18,7 @@ O que torna Git difícil é que ele é invisível: você digita comandos e não 
 
 **RPG de vista de cima, estilo 16-bit** (Pokémon GBA, Zelda Minish Cap, Stardew). O jogador já conhece essa linguagem e sobra atenção pra aprender Git. O "8-bit" entra pela trilha chiptune e por um **filtro Game Boy** opcional (4 tons de verde).
 
-| Elemento conhecido | No Repo Vivo |
+| Elemento conhecido | Em Commitia |
 |---|---|
 | Andar pela vila em grade | Cada arquivo é uma área da vila (`casas.txt`, `horta.txt`, `praca.txt`) |
 | Professor Carvalho | **Professora Commit**: apresenta o jogo e dá voz ao tutor de IA |

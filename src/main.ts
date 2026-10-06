@@ -27,4 +27,22 @@ function fit() {
 addEventListener("resize", fit);
 game.events.once(Phaser.Core.Events.READY, fit);
 
+// Zoom do navegador (Ctrl +/-) e troca de monitor mudam o devicePixelRatio, nem sempre com "resize".
+(function watchDpr() {
+  matchMedia(`(resolution: ${devicePixelRatio}dppx)`).addEventListener("change", () => { fit(); watchDpr(); }, { once: true });
+})();
+
+// Guarda de desenvolvimento: avisa se a imagem deixar de ser pixel-perfeita.
+if (import.meta.env.DEV) {
+  game.events.on(Phaser.Core.Events.POST_STEP, () => {
+    const { w, h } = devicePx();
+    const cam = game.scene.getScenes(true)[0]?.cameras.main;
+    const bad = game.canvas.width !== w || game.canvas.height !== h || (cam && !Number.isInteger(cam.zoom));
+    if (bad && !(window as any).__pixelWarned) {
+      (window as any).__pixelWarned = true;
+      console.error(`[pixel] escala não inteira: canvas ${game.canvas.width}x${game.canvas.height}, tela ${w}x${h}, zoom ${cam?.zoom}`);
+    }
+  });
+}
+
 if (import.meta.env.DEV) Object.assign(window, { game }); // inspeção no console durante o desenvolvimento

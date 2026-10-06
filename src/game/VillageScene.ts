@@ -72,8 +72,14 @@ export class VillageScene extends Phaser.Scene {
     }
     this.player = this.add.sprite(this.tile.x * T + 8, (this.tile.y + 1) * T, "helena", DIR_ROW.up * 4).setOrigin(0.5, 1);
     this.buddy = this.add.image(this.tile.x * T + 8, (this.tile.y + 2) * T, "gitinho").setOrigin(0.5, 1);
-    this.tweens.add({ targets: this.buddy, scaleY: 0.85, scaleX: 1.1, yoyo: true, repeat: -1, duration: 420, ease: "Sine.InOut" });
-    this.events.on("update", () => { this.player.setDepth(this.player.y); this.buddy.setDepth(this.buddy.y); });
+    // "respira" quicando 1 pixel; nunca escala fracionada (distorce os pixels)
+    this.buddy.setData("bob", 0);
+    this.time.addEvent({ delay: 400, loop: true, callback: () => this.buddy.setData("bob", this.buddy.getData("bob") ? 0 : 1) });
+    this.events.on("update", () => {
+      this.player.setDepth(this.player.y);
+      this.buddy.setDepth(this.buddy.y);
+      this.buddy.setDisplayOrigin(this.buddy.width / 2, this.buddy.height + this.buddy.getData("bob"));
+    });
 
     this.cameras.main.setBounds(0, 0, MAP_W * T, MAP_H * T).startFollow(this.player, true).setRoundPixels(true);
     // zoom inteiro que mostra pelo menos 320x180 pixels do mundo

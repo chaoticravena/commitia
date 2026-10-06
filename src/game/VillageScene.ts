@@ -2,23 +2,20 @@ import Phaser from "phaser";
 import { LOTS, MAP_H, MAP_W, ROAD, T, autotile, dirtGrid } from "./map.ts";
 
 type Dir = "down" | "up" | "left" | "right";
-const DIR_COL: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // coluna na SpriteSheet do personagem
+const DIR_ROW: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // linha na folha 4x4 de caminhada
 const STEP_MS = 180;
-// ponytail: ?pal=pastel troca pra arte recolorida; vira o padrão se a comparação aprovar
-const ART = new URLSearchParams(location.search).get("pal") === "pastel" ? "/assets-pastel" : "/assets";
+// chão: pacote recolorido na paleta Soft Pastel (?pal=orig mostra as cores originais do Ninja Adventure)
+const TILES = new URLSearchParams(location.search).get("pal") === "orig" ? "/assets/tiles" : "/assets-pastel/tiles";
+const SPRITES = "/assets/sprites"; // arte própria, já na paleta
 
-// Recortes (x, y, w, h) nas folhas do Ninja Adventure.
-const FRAMES = {
-  house: { casaLaranja: [0, 0, 64, 48], casaPalha: [64, 0, 64, 48], casaLaranja2: [128, 0, 64, 48], casaVermelha: [192, 0, 64, 48] },
-  nature: {
-    arvoreGrande: [48, 288, 48, 48], arvoreRosa: [0, 288, 48, 48], arvoreLaranja: [144, 288, 48, 48],
-    arvore: [0, 0, 32, 32], pedra: [256, 80, 64, 48],
-    flor1: [16, 176, 16, 16], flor2: [32, 176, 16, 16], flor3: [48, 176, 16, 16],
-  },
-} as const;
+const IMAGES = [
+  "arvore-grande", "arvore-florida", "casa-pedra-rosa", "casa-madeira", "casa-padaria", "torre-relogio",
+  "pedra-do-tempo", "poste-lanterna", "cerca", "arbusto", "capim-alto", "caixa-correio", "gitinho",
+];
 
 export class VillageScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
+  private buddy!: Phaser.GameObjects.Image;
   private tile = { x: 15, y: 15 };
   private facing: Dir = "up";
   private moving = false;
@@ -29,58 +26,54 @@ export class VillageScene extends Phaser.Scene {
   constructor() { super("village"); }
 
   preload() {
-    this.load.image("floor", `${ART}/tiles/TilesetFloor.png`);
-    this.load.image("house", `${ART}/tiles/TilesetHouse.png`);
-    this.load.image("nature", `${ART}/tiles/TilesetNature.png`);
-    this.load.spritesheet("boy", `${ART}/chars/Boy/SpriteSheet.png`, { frameWidth: 16, frameHeight: 16 });
-    this.load.spritesheet("oldwoman", `${ART}/chars/OldWoman/SpriteSheet.png`, { frameWidth: 16, frameHeight: 16 });
-    this.load.image("shadow", `${ART}/chars/Shadow.png`);
-    this.load.image("pedraTempo", `${ART}/sprites/pedra-do-tempo.png`);
+    this.load.image("floor", `${TILES}/TilesetFloor.png`);
+    for (const name of IMAGES) this.load.image(name, `${SPRITES}/${name}.png`);
+    this.load.spritesheet("helena", `${SPRITES}/helena-andando.png`, { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("professora", `${SPRITES}/professora-andando.png`, { frameWidth: 32, frameHeight: 32 });
   }
 
   create() {
-    for (const [sheet, frames] of Object.entries(FRAMES)) {
-      const tex = this.textures.get(sheet);
-      for (const [name, [x, y, w, h]] of Object.entries(frames)) tex.add(name, 0, x, y, w, h);
-    }
-
-    // chão
     const map = this.make.tilemap({ data: autotile(dirtGrid()), tileWidth: T, tileHeight: T });
     map.createLayer(0, map.addTilesetImage("floor")!, 0, 0);
     this.solid = Array.from({ length: MAP_H }, () => new Array<boolean>(MAP_W).fill(false));
 
-    // moldura de árvores (a vila é uma clareira)
-    const border = ["arvoreGrande", "arvoreGrande", "arvoreRosa", "arvoreGrande", "arvoreLaranja"];
+    // moldura de árvores sobrepostas (a vila é uma clareira na mata)
+    const trees = ["arvore-grande", "arvore-grande", "arvore-florida"];
     let k = 0;
-    for (let x = -1; x < MAP_W; x += 3) {
-      this.prop("nature", border[k++ % 5], x, -1, 3, 3);
-      if (x + 3 <= ROAD.x || x >= ROAD.x + ROAD.w) this.prop("nature", border[k++ % 5], x, MAP_H - 2, 3, 3);
+    for (let x = -1; x < MAP_W; x += 2) {
+      this.place(trees[k++ % 3], x, 1 + (x % 4 === 1 ? 1 : 0));
+      if (x + 3 <= ROAD.x || x >= ROAD.x + ROAD.w) this.place(trees[k++ % 3], x, MAP_H - 1 + (x % 4 === 1 ? 0 : 1));
     }
-    for (let y = 2; y < MAP_H - 2; y += 3) { this.prop("nature", border[k++ % 5], -1, y, 3, 3); this.prop("nature", border[k++ % 5], MAP_W - 2, y, 3, 3); }
+    for (let y = 3; y < MAP_H - 1; y += 2) { this.place(trees[k++ % 3], -1, y); this.place(trees[k++ % 3], MAP_W - 2, y); }
 
     // casas nos lotes (no jogo isso vem de casas.txt)
-    const casas = ["casaLaranja", "casaPalha", null, "casaVermelha"];
-    LOTS.forEach((lot, i) => { if (casas[i]) this.prop("house", casas[i]!, lot.x, lot.y + lot.h - 3, 4, 3); });
+    const casas = ["casa-pedra-rosa", "casa-madeira", null, "casa-padaria"];
+    LOTS.forEach((lot, i) => { if (casas[i]) this.place(casas[i]!, lot.x, lot.y + lot.h - 1, 2); });
+    this.place("caixa-correio", 7, 6);
+    this.place("cerca", 17, 6);
 
-    // Pedra do Tempo no centro da praça
-    this.add.image(15 * T, 12 * T, "pedraTempo").setOrigin(0.5, 1).setDepth(12 * T);
-    for (let x = 14; x <= 16; x++) this.solid[11][x] = true;
-    // flores
-    [[21, 11], [22, 12], [23, 11], [8, 12], [7, 11], [24, 15], [6, 15]].forEach(([x, y], i) => this.add.image(x * T, y * T, "nature", `flor${(i % 3) + 1}`).setOrigin(0));
+    // praça: Pedra do Tempo, torre do relógio e postes
+    this.place("pedra-do-tempo", 14, 11, 2);
+    this.place("torre-relogio", 21, 12, 2);
+    this.place("poste-lanterna", 10, 10);
+    this.place("poste-lanterna", 18, 9);
+
+    // vegetação
+    [[5, 12], [24, 15], [8, 16], [20, 17], [3, 9]].forEach(([x, y]) => this.place("arbusto", x, y));
+    [[3, 14], [6, 17], [25, 11], [22, 16], [9, 13], [17, 16], [26, 17]].forEach(([x, y]) => this.place("capim-alto", x, y, 0));
 
     // Professora Commit
-    this.add.image(19 * T + 8, 12 * T + 15, "shadow");
-    this.add.sprite(19 * T + 8, 12 * T + 8, "oldwoman", 0).setDepth(12 * T);
+    this.add.sprite(19 * T + 8, 12 * T + T, "professora", 0).setOrigin(0.5, 1).setDepth(13 * T);
     this.solid[12][19] = true;
 
-    // jogadora
-    this.anims.create({ key: "idle-down", frames: [{ key: "boy", frame: 0 }] });
-    for (const [dir, col] of Object.entries(DIR_COL)) {
-      this.anims.create({ key: `walk-${dir}`, frames: this.anims.generateFrameNumbers("boy", { frames: [0, 1, 2, 3].map(r => r * 4 + col) }), frameRate: 10, repeat: -1 });
+    // jogadora + Gitinho
+    for (const [dir, row] of Object.entries(DIR_ROW)) {
+      this.anims.create({ key: `walk-${dir}`, frames: this.anims.generateFrameNumbers("helena", { frames: [0, 1, 2, 3].map(c => row * 4 + c) }), frameRate: 8, repeat: -1 });
     }
-    const shadow = this.add.image(0, 0, "shadow");
-    this.player = this.add.sprite(this.tile.x * T + 8, this.tile.y * T + 8, "boy", DIR_COL.up);
-    this.events.on("update", () => { shadow.setPosition(this.player.x, this.player.y + 7); this.player.setDepth(this.player.y); shadow.setDepth(this.player.y - 1); });
+    this.player = this.add.sprite(this.tile.x * T + 8, (this.tile.y + 1) * T, "helena", DIR_ROW.up * 4).setOrigin(0.5, 1);
+    this.buddy = this.add.image(this.tile.x * T + 8, (this.tile.y + 2) * T, "gitinho").setOrigin(0.5, 1);
+    this.tweens.add({ targets: this.buddy, scaleY: 0.85, scaleX: 1.1, yoyo: true, repeat: -1, duration: 420, ease: "Sine.InOut" });
+    this.events.on("update", () => { this.player.setDepth(this.player.y); this.buddy.setDepth(this.buddy.y); });
 
     this.cameras.main.setBounds(0, 0, MAP_W * T, MAP_H * T).startFollow(this.player, true).setRoundPixels(true);
 
@@ -93,12 +86,13 @@ export class VillageScene extends Phaser.Scene {
     for (const [dir, ks] of Object.entries(this.keys)) ks.forEach(key => key.on("down", () => { this.queued = dir as Dir; }));
   }
 
-  // Coloca um objeto ancorado no canto superior esquerdo da área (x, y, w, h) em tiles e marca a base como sólida.
-  private prop(sheet: string, frame: string, x: number, y: number, w: number, h: number) {
-    const img = this.add.image(x * T, (y + h) * T, sheet, frame).setOrigin(0, 1);
-    img.setDepth((y + h) * T);
-    for (let yy = Math.max(0, y + h - 2); yy < Math.min(MAP_H, y + h); yy++)
-      for (let xx = Math.max(0, x); xx < Math.min(MAP_W, x + w); xx++) this.solid[yy][xx] = true;
+  // Põe um sprite com a base na linha `bottom` (em tiles), a partir da coluna x, e marca `solidRows` linhas da base como sólidas.
+  private place(key: string, x: number, bottom: number, solidRows = 1) {
+    const img = this.add.image(x * T, (bottom + 1) * T, key).setOrigin(0, 1).setDepth((bottom + 1) * T);
+    const w = Math.ceil(img.width / T);
+    for (let yy = bottom - solidRows + 1; yy <= bottom; yy++)
+      for (let xx = x; xx < x + w; xx++)
+        if (yy >= 0 && yy < MAP_H && xx >= 0 && xx < MAP_W) this.solid[yy][xx] = true;
     return img;
   }
 
@@ -106,17 +100,17 @@ export class VillageScene extends Phaser.Scene {
     if (this.moving) return;
     const dir = (Object.keys(this.keys) as Dir[]).find(d => this.keys[d].some(k => k.isDown)) ?? this.queued;
     this.queued = null;
-    if (!dir) { this.player.anims.stop(); this.player.setFrame(DIR_COL[this.facing]); return; }
+    if (!dir) { this.player.anims.stop(); this.player.setFrame(DIR_ROW[this.facing] * 4); return; }
     this.facing = dir;
     const nx = this.tile.x + (dir === "left" ? -1 : dir === "right" ? 1 : 0);
     const ny = this.tile.y + (dir === "up" ? -1 : dir === "down" ? 1 : 0);
     this.player.anims.play(`walk-${dir}`, true);
     if (nx < 0 || ny < 0 || nx >= MAP_W || ny >= MAP_H || this.solid[ny][nx]) return;
     this.moving = true;
+    const prev = this.tile;
     this.tile = { x: nx, y: ny };
-    this.tweens.add({
-      targets: this.player, x: nx * T + 8, y: ny * T + 8, duration: STEP_MS,
-      onComplete: () => { this.moving = false; },
-    });
+    this.tweens.add({ targets: this.player, x: nx * T + 8, y: (ny + 1) * T, duration: STEP_MS, onComplete: () => { this.moving = false; } });
+    // o Gitinho vai pra onde você estava, como um seguidor de Pokémon
+    this.tweens.add({ targets: this.buddy, x: prev.x * T + 8, y: (prev.y + 1) * T, duration: STEP_MS });
   }
 }

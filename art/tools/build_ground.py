@@ -8,6 +8,8 @@ Layout (16 colunas de 16 px), o mesmo que src/game/map.ts usa:
   linha 0: tl t tr grassBR grassBL      linha 3: 16 variações de grama
   linha 1: l  c  r  grassTR grassTL     linha 4: 16 variações de grama florida
   linha 2: bl b  br                     linha 5: 16 variações de terra
+  linhas 6-8: os mesmos 13 papéis pra água (margem com espuma, fora da água é transparente)
+  linha 9: 16 variações de água (quadro A)   linha 10: as mesmas com as ondinhas 1 px adiante (quadro B)
 Uso: python art/tools/build_ground.py            |  python art/tools/build_ground.py --selftest
 """
 import math
@@ -100,6 +102,43 @@ def dirt_tile(seed: int) -> Image.Image:
     return tile
 
 
+# Água nas cores da textura do Gemini: base, ondinhas claras com uma linha funda embaixo, brilhos.
+WATER = {"base": (140, 220, 216), "light": (181, 236, 223), "deep": (112, 194, 196), "foam": (232, 248, 242), "spark": (252, 252, 245)}
+
+
+def water_tile(seed: int, frame: int) -> Image.Image:
+    """frame 1 = ondinhas 1 px pra direita; alternar A/B no jogo dá movimento sem cruzar a borda do tile."""
+    rnd = random.Random(seed)
+    tile = Image.new("RGBA", (T, T), (*WATER["base"], 255))
+    px = tile.load()
+    for _ in range(rnd.randint(2, 3)):
+        n = rnd.randint(3, 5)
+        x, y = rnd.randrange(0, T - n - 1) + frame, rnd.randrange(1, T - 1)
+        for i in range(n):
+            px[x + i, y] = (*WATER["light"], 255)
+        for i in range(1, n - 1):
+            px[x + i, y + 1] = (*WATER["deep"], 255)
+    if rnd.random() < 0.4:
+        px[rnd.randrange(T), rnd.randrange(T)] = (*WATER["spark"], 255)
+    return tile
+
+
+def water_edge(role: str) -> Image.Image:
+    """Dentro da máscara: água com espuma na margem; logo fora: linha escura da grama; o resto transparente."""
+    fill = water_tile(0, 0).load()
+    out = Image.new("RGBA", (T, T), (0, 0, 0, 0))
+    mask = [[is_dirt(role, x, y) for x in range(T)] for y in range(T)]
+    near = lambda x, y: any(0 <= x + dx < T and 0 <= y + dy < T and mask[y + dy][x + dx] != mask[y][x]
+                            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+    for y in range(T):
+        for x in range(T):
+            if mask[y][x]:
+                out.putpixel((x, y), (*WATER["foam"], 255) if near(x, y) else fill[x, y])
+            elif near(x, y):
+                out.putpixel((x, y), (*GRASS["deep"], 255))
+    return out
+
+
 def grass_texture(flowers: bool) -> Image.Image:
     """128x128 de tiles independentes, no mesmo formato que build() recorta."""
     tex = Image.new("RGBA", (128, 128))
@@ -128,13 +167,18 @@ def build() -> Image.Image:
     dirt = Image.new("RGBA", (128, 128))
     for i in range(64):
         dirt.paste(dirt_tile(2000 + i), ((i % 8) * T, (i // 8) * T))
-    sheet = Image.new("RGBA", (COLS * T, 6 * T))
+    sheet = Image.new("RGBA", (COLS * T, 11 * T))
     for role, (c, r) in ROLES.items():
         sheet.paste(edge_tile(role, grass.crop((0, 0, T, T)), dirt.crop((0, 0, T, T)), rim_g, rim_d), (c * T, r * T))
     for row, tex in ((3, grass), (4, flowers), (5, dirt)):
         for i in range(COLS):  # 16 recortes diferentes da textura = variação sem repetição visível
             x, y = (i % 8) * T, (i // 8) * T * 3
             sheet.paste(tex.crop((x, y, x + T, y + T)), (i * T, row * T))
+    for role, (c, r) in ROLES.items():
+        sheet.paste(water_edge(role), (c * T, (r + 6) * T))
+    for i in range(COLS):
+        sheet.paste(water_tile(3000 + i, 0), (i * T, 9 * T))
+        sheet.paste(water_tile(3000 + i, 1), (i * T, 10 * T))
     return sheet
 
 
@@ -146,6 +190,10 @@ def selftest():
     t = grass_tile(1, True)
     assert t.size == (T, T) and t.getchannel("A").getextrema() == (255, 255), "tile de grama com buraco"
     assert grass_tile(5, False).tobytes() == grass_tile(5, False).tobytes(), "grama não é determinística"
+    a, b = water_tile(7, 0), water_tile(7, 1)
+    assert a.tobytes() != b.tobytes() and a.getchannel("A").getextrema() == (255, 255), "quadros da água"
+    edge = water_edge("t")
+    assert edge.getpixel((8, 0))[3] == 0 and edge.getpixel((8, 15))[3] == 255, "margem de cima"
     print("selftest ok")
 
 

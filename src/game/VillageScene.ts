@@ -1,6 +1,6 @@
 import Phaser from "phaser";
-import { addAmbient } from "./ambient.ts";
-import { LOTS, MAP_H, MAP_W, ROAD, T, autotile, dirtGrid } from "./map.ts";
+import { addAmbient, addWaterSparkles } from "./ambient.ts";
+import { BRIDGE, LOTS, MAP_H, MAP_W, RIVER_H, RIVER_Y, ROAD, T, TILES, WATER_FRAME_B, WATER_SET, autotile, dirtGrid, riverGrid } from "./map.ts";
 
 type Dir = "down" | "up" | "left" | "right";
 const DIR_ROW: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // linha na folha 4x4 de caminhada
@@ -13,7 +13,7 @@ const IMAGES = [
   "arvore-grande", "arvore-florida", "casa-pedra-rosa", "casa-madeira", "casa-padaria", "torre-relogio",
   "pedra-do-tempo", "poste-lanterna", "cerca", "arbusto", "capim-alto", "caixa-correio",
   "arvore-pinheiro", "arvore-lavanda", "arbusto-hortensia", "arbusto-frutinhas", "toco-cogumelos", "pedrinhas",
-  "canteiro-flores", "placa-madeira", "lote-vazio",
+  "canteiro-flores", "placa-madeira", "lote-vazio", "ponte-madeira",
 ];
 const FLOWERING = ["arvore-florida", "arvore-lavanda"];
 
@@ -44,6 +44,24 @@ export class VillageScene extends Phaser.Scene {
     map.createLayer(0, map.addTilesetImage("ground")!, 0, 0);
     this.solid = Array.from({ length: MAP_H }, () => new Array<boolean>(MAP_W).fill(false));
 
+    // rio: camada de água por cima do chão; só se atravessa pela ponte
+    const river = riverGrid();
+    const wmap = this.make.tilemap({ data: autotile(river, 1, WATER_SET), tileWidth: T, tileHeight: T });
+    const water = wmap.createLayer(0, wmap.addTilesetImage("ground")!, 0, 0)!;
+    const inBridge = (x: number, y: number) => x >= BRIDGE.x && x < BRIDGE.x + BRIDGE.w && y >= BRIDGE.y && y < BRIDGE.y + BRIDGE.h;
+    const waterCells: [number, number][] = [];
+    river.forEach((row, y) => row.forEach((w, x) => {
+      if (w && !inBridge(x, y)) { this.solid[y][x] = true; waterCells.push([x, y]); }
+    }));
+    // ondinhas: alterna os tiles de água entre o quadro A e o B
+    this.time.addEvent({ delay: 550, loop: true, callback: () => water.forEachTile(t => {
+      if (TILES.WATER_FILL.includes(t.index)) t.index += WATER_FRAME_B;
+      else if (TILES.WATER_FILL.includes(t.index - WATER_FRAME_B)) t.index -= WATER_FRAME_B;
+    }) });
+    addWaterSparkles(this, waterCells);
+    // ponte girada 90°, passando 12 px de cada margem; fica no nível do chão (você anda por cima)
+    this.add.image((BRIDGE.x + BRIDGE.w / 2) * T, RIVER_Y * T - 12, "ponte-madeira").setOrigin(0.5, 0).setDepth(2);
+
     // moldura de árvores sobrepostas (a vila é uma clareira na mata)
     // tamanho ímpar: as fileiras de cima e de baixo se alternam no mesmo contador, então cada uma passa por todos os tipos
     const trees = ["arvore-grande", "arvore-pinheiro", "arvore-florida", "arvore-lavanda", "arvore-grande"];
@@ -57,7 +75,10 @@ export class VillageScene extends Phaser.Scene {
       tree(x, 1 + (x % 4 === 1 ? 1 : 0));
       if (x + 3 <= ROAD.x || x >= ROAD.x + ROAD.w) tree(x, MAP_H - 1 + (x % 4 === 1 ? 0 : 1));
     }
-    for (let y = 3; y < MAP_H - 1; y += 2) { tree(-1, y); tree(MAP_W - 2, y); }
+    for (let y = 3; y < MAP_H - 1; y += 2) {
+      if (y >= RIVER_Y - 1 && y <= RIVER_Y + RIVER_H + 1) continue; // o rio sai pelas laterais
+      tree(-1, y); tree(MAP_W - 2, y);
+    }
 
     // casas nos lotes (no jogo isso vem de casas.txt)
     const casas = ["casa-pedra-rosa", "casa-madeira", "lote-vazio", "casa-padaria"];
@@ -82,10 +103,13 @@ export class VillageScene extends Phaser.Scene {
     [[3, 16], [6, 19], [26, 12], [9, 15], [17, 18], [27, 18]].forEach(([x, y]) => this.place("capim-alto", x, y, 0, 0));
     [[2, 11], [8, 11], [20, 11], [27, 11], [10, 17], [4, 18], [26, 16], [12, 19], [21, 13]]
       .forEach(([x, y]) => this.place("canteiro-flores", x, y, 0, 0));
-    [[7, 14], [25, 17], [11, 20], [17, 16]].forEach(([x, y]) => this.place("pedrinhas", x, y));
+    [[7, 14], [25, 17], [10, 19], [17, 16], [8, 24]].forEach(([x, y]) => this.place("pedrinhas", x, y));
     [[2, 14], [26, 14]].forEach(([x, y]) => this.place("toco-cogumelos", x, y));
     this.place("placa-madeira", 12, 17);
     this.place("cerca", 5, 16);
+    // margem de baixo do rio
+    [[4, 24], [23, 24], [18, 25]].forEach(([x, y]) => this.place("canteiro-flores", x, y, 0, 0));
+    [[11, 25], [25, 25]].forEach(([x, y]) => this.place("capim-alto", x, y, 0, 0));
 
     // Professora Commit
     this.add.sprite(19 * T + 8, 14 * T + T, "professora", 0).setOrigin(0.5, 1).setDepth(15 * T);
@@ -207,6 +231,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   update() {
+    const inBridgeRow = (y: number) => y >= RIVER_Y && y < RIVER_Y + RIVER_H; // na ponte não levanta poeira
     if (this.moving) return;
     // teclas seguradas somam: W+A anda na diagonal; opostas se anulam
     const held = (d: Dir) => this.keys[d].some(k => k.isDown);
@@ -231,7 +256,7 @@ export class VillageScene extends Phaser.Scene {
     this.tile = { x: nx, y: ny };
     const ms = dx && dy ? Math.round(STEP_MS * Math.SQRT2) : STEP_MS; // mesma velocidade em qualquer direção
     this.tweens.add({ targets: this.player, x: nx * T + 8, y: (ny + 1) * T, duration: ms, onComplete: () => { this.moving = false; } });
-    if (this.dirt[ny][nx]) this.ambient.stepDust(nx * T + 8, (ny + 1) * T);
+    if (this.dirt[ny][nx] && !inBridgeRow(ny)) this.ambient.stepDust(nx * T + 8, (ny + 1) * T);
     // o Gitinho vai pra onde você estava, como um seguidor de Pokémon
     const bx = prev.x * T + 8 - this.buddy.x, by = (prev.y + 1) * T - this.buddy.y;
     const bdir: Dir = Math.abs(bx) > Math.abs(by) ? (bx > 0 ? "right" : "left") : by > 0 ? "down" : "up";

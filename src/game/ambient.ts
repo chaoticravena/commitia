@@ -81,3 +81,15 @@ export function addAmbient(scene: Phaser.Scene, trees: Tree[], area: Phaser.Geom
     stepDust(x: number, y: number) { dust.setDepth(y - 1).explode(3, x, y - 1); },
   };
 }
+
+// Brilhos na água: um pixel claro acende e apaga em pontos aleatórios do rio.
+export function addWaterSparkles(scene: Phaser.Scene, cells: [number, number][]) {
+  pixelTexture(scene, "spark", 1, 1, g => g.fillStyle(0xfcfcf5).fillRect(0, 0, 1, 1));
+  scene.time.addEvent({
+    delay: 180, loop: true, callback: () => {
+      const [x, y] = cells[Math.floor(Math.random() * cells.length)];
+      const s = scene.add.image(x * 16 + Math.floor(Math.random() * 16), y * 16 + Math.floor(Math.random() * 16), "spark").setAlpha(0).setDepth(1);
+      scene.tweens.add({ targets: s, alpha: 1, duration: 300, yoyo: true, onComplete: () => s.destroy() });
+    },
+  });
+}

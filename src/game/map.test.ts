@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { autotile, TILES } from "./map.ts";
+import { autotile, BRIDGE, MAP_W, riverGrid, TILES, WATER_SET } from "./map.ts";
 
 const { DIRT, GRASS, DIRT_FILL } = TILES;
 const grid = (rows: string[]) => rows.map(r => [...r].map(c => c === "#"));
@@ -40,4 +40,18 @@ test("borda do mapa conta como terra: a estrada sai pela borda aberta", () => {
     ".##..",
   ]));
   assert.deepEqual([t[2][1], t[2][2]], [DIRT.l, DIRT.r]);
+});
+
+test("rio atravessa o mapa inteiro e é reto onde fica a ponte", () => {
+  const river = riverGrid();
+  for (let x = 0; x < MAP_W; x++) assert.ok(river.some(row => row[x]), `coluna ${x} sem água`);
+  for (let x = BRIDGE.x; x < BRIDGE.x + BRIDGE.w; x++)
+    for (let y = BRIDGE.y; y < BRIDGE.y + BRIDGE.h; y++) assert.ok(river[y][x], `ponte fora da água em ${x},${y}`);
+});
+
+test("camada de água: fora do rio fica vazia, dentro usa tiles de água", () => {
+  const t = autotile(riverGrid(), 1, WATER_SET);
+  assert.equal(t[0][0], -1);
+  assert.ok(TILES.WATER_FILL.includes(t[BRIDGE.y + 1][BRIDGE.x]));
+  assert.equal(t[BRIDGE.y][BRIDGE.x], TILES.WATER.t);
 });

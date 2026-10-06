@@ -9,7 +9,7 @@ const SPRITES = "assets/sprites"; // arte própria, já na paleta
 
 const IMAGES = [
   "arvore-grande", "arvore-florida", "casa-pedra-rosa", "casa-madeira", "casa-padaria", "torre-relogio",
-  "pedra-do-tempo", "poste-lanterna", "cerca", "arbusto", "capim-alto", "caixa-correio", "gitinho",
+  "pedra-do-tempo", "poste-lanterna", "cerca", "arbusto", "capim-alto", "caixa-correio",
   "arvore-pinheiro", "arvore-lavanda", "arbusto-hortensia", "arbusto-frutinhas", "toco-cogumelos", "pedrinhas",
   "canteiro-flores", "placa-madeira", "lote-vazio",
 ];
@@ -17,7 +17,7 @@ const FLOWERING = ["arvore-florida", "arvore-lavanda"];
 
 export class VillageScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
-  private buddy!: Phaser.GameObjects.Image;
+  private buddy!: Phaser.GameObjects.Sprite;
   private dirt = dirtGrid();
   private ambient!: ReturnType<typeof addAmbient>;
   private tile = { x: 15, y: 17 };
@@ -34,6 +34,7 @@ export class VillageScene extends Phaser.Scene {
     for (const name of IMAGES) this.load.image(name, `${SPRITES}/${name}.png`);
     this.load.spritesheet("helena", `${SPRITES}/helena-andando.png`, { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("professora", `${SPRITES}/professora-andando.png`, { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("gitinho", `${SPRITES}/gitinho-andando.png`, { frameWidth: 32, frameHeight: 32 });
   }
 
   create() {
@@ -92,19 +93,17 @@ export class VillageScene extends Phaser.Scene {
     // jogadora + Gitinho
     for (const [dir, row] of Object.entries(DIR_ROW)) {
       this.anims.create({ key: `walk-${dir}`, frames: this.anims.generateFrameNumbers("helena", { frames: [0, 1, 2, 3].map(c => row * 4 + c) }), frameRate: 8, repeat: -1 });
+      // Gitinho pula o tempo todo, como seguidor de Pokémon: parado, agacha, no ar, aterrissa
+      this.anims.create({ key: `hop-${dir}`, frames: this.anims.generateFrameNumbers("gitinho", { frames: [0, 1, 2, 3].map(c => row * 4 + c) }), frameRate: 6, repeat: -1 });
     }
     this.player = this.add.sprite(this.tile.x * T + 8, (this.tile.y + 1) * T, "helena", DIR_ROW.up * 4).setOrigin(0.5, 1);
-    this.buddy = this.add.image(this.tile.x * T + 8, (this.tile.y + 2) * T, "gitinho").setOrigin(0.5, 1);
-    // "respira" quicando 1 pixel; nunca escala fracionada (distorce os pixels)
-    this.buddy.setData("bob", 0);
-    this.time.addEvent({ delay: 400, loop: true, callback: () => this.buddy.setData("bob", this.buddy.getData("bob") ? 0 : 1) });
+    this.buddy = this.add.sprite(this.tile.x * T + 8, (this.tile.y + 2) * T, "gitinho").setOrigin(0.5, 1).play("hop-up");
     const shadows = [this.shadow(0, 0, 12), this.shadow(0, 0, 10)];
     this.events.on("update", () => {
       shadows[0].setPosition(this.player.x, this.player.y - 1);
       shadows[1].setPosition(this.buddy.x, this.buddy.y - 1);
       this.player.setDepth(this.player.y);
       this.buddy.setDepth(this.buddy.y);
-      this.buddy.setDisplayOrigin(this.buddy.width / 2, this.buddy.height + this.buddy.getData("bob"));
     });
 
     this.ambient = addAmbient(this, placed, new Phaser.Geom.Rectangle(2 * T, 3 * T, (MAP_W - 4) * T, (MAP_H - 6) * T));
@@ -232,6 +231,9 @@ export class VillageScene extends Phaser.Scene {
     this.tweens.add({ targets: this.player, x: nx * T + 8, y: (ny + 1) * T, duration: ms, onComplete: () => { this.moving = false; } });
     if (this.dirt[ny][nx]) this.ambient.stepDust(nx * T + 8, (ny + 1) * T);
     // o Gitinho vai pra onde você estava, como um seguidor de Pokémon
+    const bx = prev.x * T + 8 - this.buddy.x, by = (prev.y + 1) * T - this.buddy.y;
+    const bdir: Dir = Math.abs(bx) > Math.abs(by) ? (bx > 0 ? "right" : "left") : by > 0 ? "down" : "up";
+    this.buddy.play(`hop-${bdir}`, true);
     this.tweens.add({ targets: this.buddy, x: prev.x * T + 8, y: (prev.y + 1) * T, duration: ms });
   }
 }

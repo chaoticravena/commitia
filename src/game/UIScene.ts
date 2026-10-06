@@ -35,11 +35,11 @@ export class UIScene extends Phaser.Scene {
   get open() { return this.box.visible; }
 
   preload() {
-    this.load.image("dialog", "/assets/ui/DialogBoxFaceset.png");
-    this.load.image("face-professora", "/assets/chars/OldWoman/Faceset.png");
-    this.load.image("face-voce", "/assets/chars/Boy/Faceset.png");
-    this.load.audio("blip", "/assets/audio/blip.wav");
-    this.load.audio("accept", "/assets/audio/accept.wav");
+    this.load.image("dialog", "assets/ui/DialogBoxFaceset.png");
+    this.load.image("face-professora", "assets/chars/OldWoman/Faceset.png");
+    this.load.image("face-voce", "assets/chars/Boy/Faceset.png");
+    this.load.audio("blip", "assets/audio/blip.wav");
+    this.load.audio("accept", "assets/audio/accept.wav");
   }
 
   create() {

@@ -5,7 +5,7 @@ import { LOTS, MAP_H, MAP_W, ROAD, T, autotile, dirtGrid } from "./map.ts";
 type Dir = "down" | "up" | "left" | "right";
 const DIR_ROW: Record<Dir, number> = { down: 0, up: 1, left: 2, right: 3 }; // linha na folha 4x4 de caminhada
 const STEP_MS = 180;
-const SPRITES = "/assets/sprites"; // arte própria, já na paleta
+const SPRITES = "assets/sprites"; // arte própria, já na paleta
 
 const IMAGES = [
   "arvore-grande", "arvore-florida", "casa-pedra-rosa", "casa-madeira", "casa-padaria", "torre-relogio",

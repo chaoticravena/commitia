@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { centerText, uiZoom, loadSettings, settingsItems, sfxVolume, woodButton, type MenuItem } from "./settings.ts";
+import { LINKS, openLink, centerText, uiZoom, loadSettings, settingsItems, sfxVolume, woodButton, type MenuItem } from "./settings.ts";
 import { playMusic } from "./music.ts";
 import { STEPS, currentStep } from "./act1.ts";
 import { grimoire } from "./grimoire.ts";
@@ -142,6 +142,8 @@ export class UIScene extends Phaser.Scene {
     return [
       { label: t.resume, act: () => this.setPaused(false) },
       ...settingsItems(this, () => this.drawPause(), () => playMusic(this, "musica-vila")),
+      { label: "LinkedIn ↗", act: () => openLink(LINKS.linkedin) },
+      { label: "GitHub ↗", act: () => openLink(LINKS.github) },
       { label: t.toTitle, act: () => { this.setPaused(false); this.scene.get("village").scene.start("title", { skipIntro: true }); } },
     ];
   }

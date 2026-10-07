@@ -24,6 +24,10 @@ export function saveSettings(s: Settings) { try { localStorage.setItem(KEY, JSON
 // de 3x, pra letra não ficar enorme; continua inteiro, então os pixels seguem nítidos.
 export const uiZoom = (worldZoom: number) => (worldZoom >= 3 ? worldZoom - 1 : worldZoom);
 
+// Links da autora (rodapé do título e menu de pausa); abrem em aba nova, o jogo continua onde estava
+export const LINKS = { linkedin: "https://www.linkedin.com/in/schwanteshelena/", github: "https://github.com/lenaschwantes" };
+export const openLink = (url: string) => window.open(url, "_blank", "noopener");
+
 export const sfxVolume = () => loadSettings().sfx / 100;
 
 // Peças visuais compartilhadas pelo título e pela pausa

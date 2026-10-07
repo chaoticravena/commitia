@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { playMusic } from "./music.ts";
-import { centerText, loadSettings, settingsItems, woodButton, type MenuItem } from "./settings.ts";
+import { LINKS, openLink, centerText, loadSettings, settingsItems, woodButton, type MenuItem } from "./settings.ts";
 import { store } from "./store.ts";
 import { CHARS, type CharKey } from "./VillageScene.ts";
 
@@ -284,6 +284,15 @@ export class TitleScene extends Phaser.Scene {
       const by = this.add.text(0, 0, this.t.by, { ...FONT, color: "#fcf4ee" });
       by.setPosition(Math.round(W - by.width - 6), H - 12);
       this.ui.add([by, this.add.image(by.x - 8, H - 8, this.catFace())]);
+      // links da autora no canto esquerdo do rodapé: sublinham ao passar o mouse
+      let lx = 6;
+      for (const [label, url] of [["LinkedIn", LINKS.linkedin], ["GitHub", LINKS.github]] as const) {
+        const l = this.add.text(lx, H - 24, label, { ...FONT, color: "#fcf4ee" }).setInteractive({ useHandCursor: true });
+        const line = this.add.rectangle(lx, H - 15, l.width, 1, 0xfcf4ee).setOrigin(0, 0).setVisible(false);
+        l.on("pointerover", () => line.setVisible(true)).on("pointerout", () => line.setVisible(false)).on("pointerdown", () => openLink(url));
+        this.ui.add([l, line]);
+        lx += l.width + 12;
+      }
     } else if (this.state === "chars") {
       this.ui.add(this.text(W / 2, cy - 14, this.t.pick));
       const w = 56, h = 68, gap = 12, x0 = Math.round(W / 2 - (items.length * w + gap) / 2);

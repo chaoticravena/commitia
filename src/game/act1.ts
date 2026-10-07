@@ -109,3 +109,36 @@ export function professora(ws: Workspace, p: Progress, lang: "pt" | "en" = "pt")
   const step = currentStep(ws, p);
   return lines[step < 0 ? lines.length - 1 : step];
 }
+
+// "Próximo passo" do grimório, escrito pra quem nunca usou Git: o que fazer, em palavras simples,
+// e o comando pronto pra preencher (o botão Usar põe no campo; __ marca a parte que a pessoa escreve).
+export type Hint = { text: string; cmd?: string };
+const HINTS: Record<"pt" | "en", Hint[]> = {
+  pt: [
+    { text: "Feche o grimório e fale com a Professora Commit (fique de frente pra ela e aperte Espaço)." },
+    { text: "Crie o repositório: é o que faz o Git começar a cuidar da vila.", cmd: "git init" },
+    { text: "Feche o grimório, fique de frente pro lote vazio (o cercado de corda) e aperte Espaço pra construir." },
+    { text: "Separe as mudanças pro próximo save. O ponto quer dizer \"tudo que mudou\".", cmd: "git add ." },
+    { text: "Salve o momento. Troque o texto entre aspas por uma frase sua sobre o que mudou.", cmd: 'git commit -m "__"' },
+    { text: "Troque uma casa (Espaço num lote), depois repita: git add . e git commit -m \"sua frase\".", cmd: "git add ." },
+    { text: "Veja a lista de saves. Depois toque no código do PRIMEIRO save (o de baixo) pra viajar até ele.", cmd: "git log --oneline" },
+    { text: "Você está no passado. Pra voltar ao presente:", cmd: "git switch main" },
+    { text: "Ato 1 completo! Experimente à vontade: status, log e diff só olham, não mudam nada." },
+  ],
+  en: [
+    { text: "Close the spellbook and talk to Professor Commit (face her and press Space)." },
+    { text: "Create the repository: this makes Git start looking after the village.", cmd: "git init" },
+    { text: "Close the spellbook, face the empty lot (the roped one) and press Space to build." },
+    { text: "Set your changes aside for the next save. The dot means \"everything that changed\".", cmd: "git add ." },
+    { text: "Save this moment. Replace the text between quotes with your own sentence about the change.", cmd: 'git commit -m "__"' },
+    { text: "Swap a house (Space on a lot), then repeat: git add . and git commit -m \"your sentence\".", cmd: "git add ." },
+    { text: "See the list of saves. Then tap the code of the FIRST save (the bottom one) to travel to it.", cmd: "git log --oneline" },
+    { text: "You're in the past. To come back to the present:", cmd: "git switch main" },
+    { text: "Act 1 complete! Play around: status, log and diff only look, they never change anything." },
+  ],
+};
+
+export function nextHint(ws: Workspace, p: Progress, lang: "pt" | "en"): Hint {
+  const step = currentStep(ws, p);
+  return HINTS[lang][step < 0 ? HINTS[lang].length - 1 : step];
+}

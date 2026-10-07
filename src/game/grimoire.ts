@@ -7,8 +7,8 @@ import { store } from "./store.ts";
 import { nextHint } from "./act1.ts";
 
 const T = {
-  pt: { title: "Grimório", hint: "Esc fecha", placeholder: "git ...  (↑↓ histórico)", hello: "Aqui você escreve comandos do Git (todos começam com git). Lá fora, na vila, você vê o efeito de cada um.", button: "Grimório (G)" },
-  en: { title: "Spellbook", hint: "Esc closes", placeholder: "git ...  (↑↓ history)", hello: "Here you write Git commands (they all start with git). Out in the village, you see what each one does.", button: "Spellbook (G)" },
+  pt: { title: "Grimório", hint: "Esc fecha", placeholder: "Digite aqui, ex.: git status", send: "Enviar ↵", keys: "Enter envia · ↑↓ anteriores · Tab sugestão", hello: "Aqui você escreve comandos do Git (todos começam com git). Lá fora, na vila, você vê o efeito de cada um.", button: "Grimório (G)" },
+  en: { title: "Spellbook", hint: "Esc closes", placeholder: "Type here, e.g. git status", send: "Send ↵", keys: "Enter sends · ↑↓ previous · Tab suggestion", hello: "Here you write Git commands (they all start with git). Out in the village, you see what each one does.", button: "Spellbook (G)" },
 };
 
 const CSS = `
@@ -31,9 +31,15 @@ const CSS = `
 #grimoire-log .why { color: #7a6a5a; opacity: 0; animation: why-in .45s steps(5) .35s forwards; } #grimoire-log .why a { color: #7a5fa8; }
 /* entra em degraus (steps): desliza e aparece como animação de pixel, não um fade liso */
 @keyframes why-in { from { opacity: 0; transform: translateX(calc(var(--px) * -6)); } to { opacity: 1; transform: none; } }
-#grimoire form { display: flex; gap: calc(var(--px) * 3); margin-top: calc(var(--px) * 4); border-top: var(--px) dashed #e0b98f; padding-top: calc(var(--px) * 4); }
-#grimoire input::placeholder { color: #c9b59e; }
-#grimoire input { flex: 1; font: inherit; color: inherit; background: none; border: none; outline: none; padding: 0; }
+/* campo de digitar com cara de campo: caixa branca, borda de madeira, roxa quando está com o cursor */
+#grimoire form { display: flex; gap: calc(var(--px) * 3); margin-top: calc(var(--px) * 4); align-items: stretch; }
+#grimoire input { flex: 1; min-width: 0; font: inherit; color: inherit; background: #fffdf9; border: var(--px) solid #c79c7a;
+  outline: none; padding: calc(var(--px) * 3) calc(var(--px) * 4); }
+#grimoire input:focus { border-color: #7a5fa8; box-shadow: 0 0 0 var(--px) #c8bde6; }
+#grimoire input::placeholder { color: #a8977f; }
+#grimoire form button { font: inherit; background: #e0b98f; border: var(--px) solid #5e4a4a; color: #443c53; cursor: pointer; padding: 0 calc(var(--px) * 4); }
+#grimoire form button:hover { background: #f7d9a0; }
+#grimoire .keys { color: #a8977f; margin-top: calc(var(--px) * 2); font-size: calc(var(--px8) * 0.85); }
 #grimoire-btn { position: fixed; right: calc(var(--px) * 4); bottom: calc(var(--px) * 4); background: #e0b98f; border: var(--px) solid #5e4a4a;
   padding: calc(var(--px) * 3) calc(var(--px) * 4); cursor: pointer; z-index: 9; color: #443c53; }
 #grimoire-btn:hover { background: #f7d9a0; }
@@ -83,7 +89,7 @@ class Grimoire extends EventTarget {
     if (this.el) return;
     document.head.append(Object.assign(document.createElement("style"), { textContent: CSS }));
     this.el = Object.assign(document.createElement("div"), { id: "grimoire", hidden: true });
-    this.el.innerHTML = `<h2><span></span><small></small></h2><div id="grimoire-hint"></div><pre id="grimoire-log"></pre><form><span>✦</span><input autocomplete="off" spellcheck="false"></form>`;
+    this.el.innerHTML = `<h2><span></span><small></small></h2><div id="grimoire-hint"></div><pre id="grimoire-log"></pre><form><input autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="send"><button type="submit"></button></form><div class="keys"></div>`;
     this.log = this.el.querySelector("pre")!;
     this.input = this.el.querySelector("input")!;
     this.btn = Object.assign(document.createElement("button"), { id: "grimoire-btn", hidden: true });
@@ -157,6 +163,9 @@ class Grimoire extends EventTarget {
     // o "Esc fecha" também é botão: no celular não tem Esc
     this.el.querySelector("h2 small")!.textContent = matchMedia("(pointer: coarse)").matches ? (loadSettings().lang === "pt" ? "Fechar ✕" : "Close ✕") : t.hint;
     this.input.placeholder = t.placeholder;
+    this.el.querySelector("form button")!.textContent = t.send;
+    // no celular não tem setas nem Tab: a linha de atalhos só aparece no computador
+    this.el.querySelector<HTMLDivElement>(".keys")!.textContent = matchMedia("(pointer: coarse)").matches ? "" : t.keys;
     if (!this.log.childElementCount) this.print(t.hello, "head");
     this.refreshHint();
     this.el.hidden = false;

@@ -7,8 +7,8 @@ import { store } from "./store.ts";
 import { nextHint } from "./act1.ts";
 
 const T = {
-  pt: { title: "Grimório", hint: "Esc fecha", placeholder: "git ...  (↑↓ histórico)", hello: "Escreva um feitiço. Todo feitiço começa com git.", button: "Grimório (G)" },
-  en: { title: "Spellbook", hint: "Esc closes", placeholder: "git ...  (↑↓ history)", hello: "Write a spell. Every spell starts with git.", button: "Spellbook (G)" },
+  pt: { title: "Grimório", hint: "Esc fecha", placeholder: "git ...  (↑↓ histórico)", hello: "Aqui você escreve comandos do Git (todos começam com git). Lá fora, na vila, você vê o efeito de cada um.", button: "Grimório (G)" },
+  en: { title: "Spellbook", hint: "Esc closes", placeholder: "git ...  (↑↓ history)", hello: "Here you write Git commands (they all start with git). Out in the village, you see what each one does.", button: "Spellbook (G)" },
 };
 
 const CSS = `
@@ -17,6 +17,7 @@ const CSS = `
   height: min(calc(var(--px) * 165), 84vh); display: flex; flex-direction: column; background: #fcf4ee;
   border: var(--px) solid #5e4a4a; box-shadow: inset 0 0 0 calc(var(--px) * 2) #e0b98f; padding: calc(var(--px) * 6); box-sizing: border-box; z-index: 10; }
 #grimoire[hidden], #grimoire-btn[hidden] { display: none; }
+#grimoire { transition: opacity .25s; } #grimoire.peek { opacity: .12; pointer-events: none; }
 #grimoire h2 { margin: 0 0 calc(var(--px) * 4); font-size: var(--px8); font-weight: normal; color: #5e4a4a; display: flex; justify-content: space-between; }
 #grimoire h2 small { color: #a87d63; font-size: var(--px8); cursor: pointer; padding: 4px 0 4px 12px; }
 #grimoire-hint { background: #f2e6d0; border: var(--px) dashed #c79c7a; padding: calc(var(--px) * 3); margin-bottom: calc(var(--px) * 4); line-height: 1.6; }
@@ -201,6 +202,11 @@ class Grimoire extends EventTarget {
     const help = !result.ok && (cmd.startsWith("git") ? USAGE[result.command ?? ""]?.[lang] : UI[lang].notGit);
     if (help) this.print(`💡 ${help}`, "why");
     this.refreshHint();
+    // mudou a vila: o grimório fica quase transparente um instante pra pessoa ver o efeito do comando
+    if (result.ok && ["add", "commit", "switch", "checkout", "restore"].includes(result.command ?? "")) {
+      this.el.classList.add("peek");
+      setTimeout(() => { this.el.classList.remove("peek"); this.input.focus(); }, 1600);
+    }
     const why = result.ok && result.command ? WHY[result.command] : undefined;
     if (why) {
       const line = this.print(`💡 ${why[loadSettings().lang]} `, "why");

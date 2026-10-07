@@ -41,6 +41,7 @@ export class UIScene extends Phaser.Scene {
   private onDone?: () => void;
   private goal!: Phaser.GameObjects.Text;
   private goalBg!: Phaser.GameObjects.Graphics;
+  private legend!: Phaser.GameObjects.Container;
 
   constructor() { super("ui"); }
 
@@ -79,6 +80,7 @@ export class UIScene extends Phaser.Scene {
     // objetivo atual no canto: avança sozinho a cada comando certo
     this.goalBg = this.add.graphics();
     this.goal = this.add.text(10, 9, "", FONT);
+    this.legend = this.add.container(0, 0);
     const refresh = () => this.refreshGoal();
     store.on(refresh);
     grimoire.addEventListener("change", refresh);
@@ -128,7 +130,7 @@ export class UIScene extends Phaser.Scene {
     this.lastToast.forEach(o => o.destroy()); // apertou de novo: o aviso novo substitui o anterior
     const bg = this.add.graphics(); // fundo antes do texto, senão cobre as letras
     const t = this.add.text(0, 0, msg, { ...FONT, color: "#fcf4ee" });
-    t.setPosition(Math.round(W / 2 - t.width / 2), 28);
+    t.setPosition(Math.round(W / 2 - t.width / 2), 66); // abaixo do objetivo e da legenda
     bg.fillStyle(C.woodDark).fillRect(t.x - 5, t.y - 4, t.width + 10, 16);
     this.lastToast = [bg, t];
     this.tweens.add({ targets: [t, bg], alpha: 0, delay: 1400, duration: 400, onComplete: () => { t.destroy(); bg.destroy(); } });
@@ -192,6 +194,28 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
+  // Legenda das cores das casas: o que cada estado quer dizer no Git (aparece depois do git init)
+  private refreshLegend() {
+    this.legend.removeAll(true);
+    if (!store.ws.repo) return;
+    const pt = loadSettings().lang === "pt";
+    const rows: [number, number, string][] = [
+      [0xffa8c0, 1, pt ? "mudou: falta git add" : "changed: needs git add"],
+      [0xb8f0c8, 1, pt ? "pronta pro git commit" : "ready for git commit"],
+      [0xc9b59e, 0.4, pt ? "apagada, Git ainda guarda" : "deleted, Git still has it"],
+    ];
+    const w = 14 + Math.max(...rows.map(r => r[2].length)) * 8 + 8, h = 8 + rows.length * 11, y0 = 25;
+    const g = this.add.graphics();
+    g.fillStyle(C.woodDark).fillRect(4, y0, w + 2, h).fillStyle(C.cream).fillRect(5, y0 + 1, w, h - 2);
+    const items: Phaser.GameObjects.GameObject[] = [g];
+    rows.forEach(([color, alpha, label], i) => {
+      const y = y0 + 5 + i * 11;
+      g.fillStyle(color, alpha).fillRect(9, y, 8, 8).lineStyle(1, C.woodDark, alpha).strokeRect(9.5, y + 0.5, 7, 7);
+      items.push(this.add.text(21, y, label, FONT));
+    });
+    this.legend.add(items);
+  }
+
   refreshGoal() {
     const lang = loadSettings().lang;
     const i = currentStep(store.ws, store.progress);
@@ -199,6 +223,7 @@ export class UIScene extends Phaser.Scene {
     this.goal.setText(`${lang === "pt" ? "Objetivo" : "Goal"}: ${label}`);
     const w = this.goal.width + 12;
     this.goalBg.clear().fillStyle(C.woodDark).fillRect(4, 4, w + 2, 18).fillStyle(C.wood).fillRect(5, 5, w, 16).fillStyle(C.cream).fillRect(6, 6, w - 2, 14);
+    this.refreshLegend();
   }
 
   advance() {

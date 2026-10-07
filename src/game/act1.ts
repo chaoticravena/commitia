@@ -9,14 +9,14 @@ const detached = (ws: Workspace) => !!ws.repo && "detached" in ws.repo.head;
 const built = (ws: Workspace) => ws.work[FILES.casas] !== STARTING_FILES[FILES.casas] || flowers(ws.work).size > 0;
 
 export const STEPS: { label: { pt: string; en: string }; done: (ws: Workspace, p: Progress) => boolean }[] = [
-  { label: { pt: "Fale com a Profa. Commit", en: "Talk to Prof. Commit" }, done: (_, p) => p.talked },
-  { label: { pt: "git init", en: "git init" }, done: ws => !!ws.repo },
-  { label: { pt: "Construa algo", en: "Build something" }, done: ws => built(ws) || commits(ws) > 0 },
-  { label: { pt: "git add", en: "git add" }, done: ws => !!ws.repo && (Object.keys(ws.repo.index).length > 0) },
-  { label: { pt: "git commit", en: "git commit" }, done: ws => commits(ws) >= 1 },
-  { label: { pt: "Mude e salve de novo", en: "Change and save again" }, done: ws => commits(ws) >= 2 },
-  { label: { pt: "Visite o passado", en: "Visit the past" }, done: (ws, p) => p.visitedPast || detached(ws) },
-  { label: { pt: "Volte ao presente", en: "Come back to the present" }, done: (ws, p) => p.visitedPast && !detached(ws) },
+  { label: { pt: "Fale com a Profa. Commit (Espaço)", en: "Talk to Prof. Commit (Space)" }, done: (_, p) => p.talked },
+  { label: { pt: "Abra o grimório (G): git init", en: "Open the spellbook (G): git init" }, done: ws => !!ws.repo },
+  { label: { pt: "Construa no lote vazio (Espaço)", en: "Build on the empty lot (Space)" }, done: ws => built(ws) || commits(ws) > 0 },
+  { label: { pt: "No grimório: git add .", en: "In the spellbook: git add ." }, done: ws => !!ws.repo && (Object.keys(ws.repo.index).length > 0) },
+  { label: { pt: "No grimório: git commit -m", en: "In the spellbook: git commit -m" }, done: ws => commits(ws) >= 1 },
+  { label: { pt: "Troque uma casa e salve de novo", en: "Swap a house and save again" }, done: ws => commits(ws) >= 2 },
+  { label: { pt: "git log e viaje ao 1º commit", en: "git log, travel to the 1st commit" }, done: (ws, p) => p.visitedPast || detached(ws) },
+  { label: { pt: "Volte: git switch main", en: "Go back: git switch main" }, done: (ws, p) => p.visitedPast && !detached(ws) },
 ];
 
 export const currentStep = (ws: Workspace, p: Progress) => STEPS.findIndex(s => !s.done(ws, p));

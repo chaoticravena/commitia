@@ -7,7 +7,7 @@ export function playMusic(scene: Phaser.Scene, key: string) {
   const sound = scene.sound;
   sound.getAllPlaying().forEach(s => { if (s.key !== key) s.stop(); });
   const m = (sound.get(key) ?? sound.add(key, { loop: true })) as Phaser.Sound.WebAudioSound;
-  const vol = 0.45 * (loadSettings().music / 10);
+  const vol = 0.45 * (loadSettings().music / 100);
   if (!vol) return void m.stop();
   m.setVolume(vol); // volume novo vale na hora, mesmo com a música tocando
   if (m.isPlaying) return;

@@ -12,34 +12,46 @@ const T = {
 };
 
 const CSS = `
-#grimoire, #grimoire-btn { font-family: "Press Start 2P", monospace; font-size: var(--px8); color: #443c53; }
+/* Fontes pra ler e aprender: Nunito nas explicações, JetBrains Mono no que é Git de verdade (comandos e
+   respostas, como num terminal), e a pixelada só no título e nos botões, pra manter a cara do jogo. */
+#grimoire { --read: "Nunito", system-ui, sans-serif; --code: "JetBrains Mono", ui-monospace, monospace; --pixel: "Press Start 2P", monospace;
+  --fs: calc(var(--px) * 8.5); font-family: var(--read); font-size: var(--fs); line-height: 1.5; color: #443c53; }
+#grimoire-btn { font-family: "Press Start 2P", monospace; font-size: var(--px8); color: #443c53; }
 #grimoire { position: fixed; left: 50%; top: calc(var(--px) * 28); transform: translateX(-50%); width: min(calc(var(--px) * 380), 96vw);
   height: min(calc(var(--px) * 165), 84vh); display: flex; flex-direction: column; background: #fcf4ee;
   border: var(--px) solid #5e4a4a; box-shadow: inset 0 0 0 calc(var(--px) * 2) #e0b98f; padding: calc(var(--px) * 6); box-sizing: border-box; z-index: 10; }
 #grimoire[hidden], #grimoire-btn[hidden] { display: none; }
 #grimoire { transition: opacity .25s; } #grimoire.peek { opacity: .12; pointer-events: none; }
-#grimoire h2 { margin: 0 0 calc(var(--px) * 4); font-size: var(--px8); font-weight: normal; color: #5e4a4a; display: flex; justify-content: space-between; }
-#grimoire h2 small { color: #a87d63; font-size: var(--px8); cursor: pointer; padding: 4px 0 4px 12px; }
-#grimoire-hint { background: #f2e6d0; border: var(--px) dashed #c79c7a; padding: calc(var(--px) * 3); margin-bottom: calc(var(--px) * 4); line-height: 1.6; }
-#grimoire-hint b { color: #7a5fa8; font-weight: normal; }
-#grimoire-hint code { font: inherit; color: #443c53; background: #fcf4ee; padding: 0 calc(var(--px) * 2); }
-#grimoire-hint button, #grimoire-log .code { font: inherit; background: #e0b98f; border: var(--px) solid #5e4a4a; color: #443c53; cursor: pointer; padding: 0 calc(var(--px) * 2); margin-left: calc(var(--px) * 2); }
-#grimoire-log .code { margin: 0 calc(var(--px) * 2) 0 0; }
-#grimoire-log { flex: 1; overflow-y: auto; white-space: pre-wrap; line-height: 1.6; margin: 0; font: inherit; }
-#grimoire-log .cmd { color: #7a5fa8; } #grimoire-log .ok, #grimoire-log .add { color: #4f8f63; }
+#grimoire h2 { margin: 0 0 calc(var(--px) * 4); font: var(--px8) var(--pixel); color: #5e4a4a; display: flex; justify-content: space-between; align-items: center; }
+#grimoire h2 small { color: #a87d63; font: inherit; cursor: pointer; padding: 4px 0 4px 12px; }
+/* "Próximo passo": cartão de destaque, o que fazer em primeiro lugar */
+#grimoire-hint { background: #f2e6d0; border: var(--px) solid #c79c7a; border-left-width: calc(var(--px) * 3); padding: calc(var(--px) * 3) calc(var(--px) * 4);
+  margin-bottom: calc(var(--px) * 4); font-weight: 500; }
+#grimoire-hint b { color: #7a5fa8; font-weight: 800; }
+#grimoire-hint code { font: 700 var(--fs) var(--code); color: #443c53; background: #fffdf9; border: var(--px) solid #e0b98f; padding: 0 calc(var(--px) * 2); }
+#grimoire-hint button, #grimoire-log .code { font: var(--px8) var(--pixel); background: #e0b98f; border: var(--px) solid #5e4a4a; color: #443c53; cursor: pointer;
+  padding: calc(var(--px) * 1) calc(var(--px) * 3); margin-left: calc(var(--px) * 2); vertical-align: middle; }
+#grimoire-log { flex: 1; overflow-y: auto; white-space: pre-wrap; margin: 0; font: inherit; }
+/* o que é Git (comando e resposta) em fonte de terminal */
+#grimoire-log .cmd, #grimoire-log .ok, #grimoire-log .add, #grimoire-log .err, #grimoire-log .del, #grimoire-log .hash, #grimoire-log .info, #grimoire-log .head:not(:first-child) { font-family: var(--code); }
+#grimoire-log .cmd { color: #7a5fa8; font-weight: 700; margin-top: calc(var(--px) * 3); } #grimoire-log .ok, #grimoire-log .add { color: #4f8f63; }
 #grimoire-log .err, #grimoire-log .del { color: #c4557a; } #grimoire-log .hash { color: #a87d63; } #grimoire-log .head { color: #5e4a4a; }
-#grimoire-log .why { color: #7a6a5a; opacity: 0; animation: why-in .45s steps(5) .35s forwards; } #grimoire-log .why a { color: #7a5fa8; }
+#grimoire-log .code { font: 700 var(--fs) var(--code); margin: 0 calc(var(--px) * 2) 0 0; }
+/* explicação: bloco separado com barra lateral, pra não se misturar com a resposta do Git */
+#grimoire-log .why { color: #5e4a4a; background: #f7efe4; border-left: calc(var(--px) * 2) solid #c8bde6; padding: calc(var(--px) * 1) calc(var(--px) * 3);
+  margin: calc(var(--px) * 1) 0 calc(var(--px) * 2); white-space: normal; opacity: 0; animation: why-in .45s steps(5) .35s forwards; }
+#grimoire-log .why a { color: #7a5fa8; font-weight: 700; }
 /* entra em degraus (steps): desliza e aparece como animação de pixel, não um fade liso */
 @keyframes why-in { from { opacity: 0; transform: translateX(calc(var(--px) * -6)); } to { opacity: 1; transform: none; } }
 /* campo de digitar com cara de campo: caixa branca, borda de madeira, roxa quando está com o cursor */
 #grimoire form { display: flex; gap: calc(var(--px) * 3); margin-top: calc(var(--px) * 4); align-items: stretch; }
-#grimoire input { flex: 1; min-width: 0; font: inherit; color: inherit; background: #fffdf9; border: var(--px) solid #c79c7a;
+#grimoire input { flex: 1; min-width: 0; font: 500 var(--fs) var(--code); color: inherit; background: #fffdf9; border: var(--px) solid #c79c7a;
   outline: none; padding: calc(var(--px) * 3) calc(var(--px) * 4); }
 #grimoire input:focus { border-color: #7a5fa8; box-shadow: 0 0 0 var(--px) #c8bde6; }
-#grimoire input::placeholder { color: #a8977f; }
-#grimoire form button { font: inherit; background: #e0b98f; border: var(--px) solid #5e4a4a; color: #443c53; cursor: pointer; padding: 0 calc(var(--px) * 4); }
+#grimoire input::placeholder { color: #a8977f; font-family: var(--read); }
+#grimoire form button { font: var(--px8) var(--pixel); background: #e0b98f; border: var(--px) solid #5e4a4a; color: #443c53; cursor: pointer; padding: 0 calc(var(--px) * 4); }
 #grimoire form button:hover { background: #f7d9a0; }
-#grimoire .keys { color: #a8977f; margin-top: calc(var(--px) * 2); font-size: calc(var(--px8) * 0.85); }
+#grimoire .keys { color: #a8977f; margin-top: calc(var(--px) * 2); font-size: calc(var(--fs) * 0.85); }
 #grimoire-btn { position: fixed; right: calc(var(--px) * 4); bottom: calc(var(--px) * 4); background: #e0b98f; border: var(--px) solid #5e4a4a;
   padding: calc(var(--px) * 3) calc(var(--px) * 4); cursor: pointer; z-index: 9; color: #443c53; }
 #grimoire-btn:hover { background: #f7d9a0; }

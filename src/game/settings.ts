@@ -1,17 +1,19 @@
 import Phaser from "phaser";
 
-// Configurações: ficam no navegador de quem joga (sem conta, sem servidor). Volumes de 0 a 10.
+// Configurações: ficam no navegador de quem joga (sem conta, sem servidor). Volumes de 0 a 100.
 export type Lang = "pt" | "en";
-export type Settings = { music: number; sfx: number; lang: Lang };
+export type Settings = { music: number; sfx: number; lang: Lang; v?: number };
 const KEY = "commitia:settings";
-const DEFAULTS = (): Settings => ({ music: 7, sfx: 7, lang: navigator.language.startsWith("pt") ? "pt" : "en" });
+const DEFAULTS = (): Settings => ({ music: 70, sfx: 70, lang: navigator.language.startsWith("pt") ? "pt" : "en" });
 
 export function loadSettings(): Settings {
   try {
     const s = { ...DEFAULTS(), ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
     // saves antigos guardavam liga/desliga
-    if (typeof s.music === "boolean") s.music = s.music ? 7 : 0;
-    if (typeof s.sfx === "boolean") s.sfx = s.sfx ? 7 : 0;
+    if (typeof s.music === "boolean") s.music = s.music ? 70 : 0;
+    if (typeof s.sfx === "boolean") s.sfx = s.sfx ? 70 : 0;
+    // escala antiga era 0..10 (só passos de 10%); vira 0..100
+    if (s.v !== 2) { if (s.music <= 10) s.music *= 10; if (s.sfx <= 10) s.sfx *= 10; s.v = 2; }
     return s;
   } catch { return DEFAULTS(); }
 }
@@ -22,7 +24,7 @@ export function saveSettings(s: Settings) { try { localStorage.setItem(KEY, JSON
 // de 3x, pra letra não ficar enorme; continua inteiro, então os pixels seguem nítidos.
 export const uiZoom = (worldZoom: number) => (worldZoom >= 3 ? worldZoom - 1 : worldZoom);
 
-export const sfxVolume = () => loadSettings().sfx / 10;
+export const sfxVolume = () => loadSettings().sfx / 100;
 
 // Peças visuais compartilhadas pelo título e pela pausa
 export const FONT = { fontFamily: '"Press Start 2P", monospace', fontSize: "8px" };
@@ -56,8 +58,9 @@ export function settingsItems(scene: Phaser.Scene, redraw: () => void, onMusic: 
   const s = loadSettings(), t = STR[s.lang];
   const save = () => { saveSettings(s); redraw(); };
   const vol = (key: "music" | "sfx", label: string, after = () => {}): MenuItem => {
-    const set = (v: number) => { s[key] = Math.max(0, Math.min(10, v)); save(); after(); };
-    return { label: `${label}  < ${s[key] * 10}% >`, act: () => set(s[key] === 10 ? 0 : s[key] + 1), adjust: d => set(s[key] + d) };
+    // ← → de 5 em 5 (ajuste fino); Enter de 10 em 10 e dá a volta no 100
+    const set = (v: number) => { s[key] = Math.max(0, Math.min(100, v)); save(); after(); };
+    return { label: `${label}  < ${s[key]}% >`, act: () => set(s[key] >= 100 ? 0 : s[key] + 10), adjust: d => set(s[key] + d * 5) };
   };
   return [
     vol("music", t.music, onMusic),

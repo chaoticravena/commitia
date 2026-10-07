@@ -43,7 +43,7 @@ const LINES: Record<"pt" | "en", string[][]> = {
       "Escolha o que vai entrar no próximo save com git add. Experimente: git add .",
     ],
     [
-      "Verde! Está no staging: a área de preparação, esperando o save.",
+      "Virou andaime! Está no staging: a área de preparação, esperando o save.",
       "Agora guarde o momento: git commit -m \"minha primeira casa\"",
     ],
     [
@@ -82,7 +82,7 @@ const LINES: Record<"pt" | "en", string[][]> = {
       "Pick what goes into the next save with git add. Try: git add .",
     ],
     [
-      "Green! It's in the staging area, waiting for the save.",
+      "It became a scaffold! It's in the staging area, waiting for the save.",
       "Now keep this moment: git commit -m \"my first house\"",
     ],
     [

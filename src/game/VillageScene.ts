@@ -32,7 +32,7 @@ const png = (name: string) => `${SPRITES}/${name}.png?v=${import.meta.env.VITE_B
 
 const IMAGES = [
   "arvore-grande", "arvore-florida", "casa-pedra-rosa", "casa-madeira", "casa-padaria", "torre-relogio",
-  "casa-floricultura", "casa-cha", "casa-biblioteca", "casa-moinho-corpo",
+  "casa-floricultura", "casa-cha", "casa-biblioteca", "casa-moinho-corpo", "andaime", "caixa-de-fotos", "poco-dos-desejos",
   "pedra-do-tempo", "poste-lanterna", "cerca", "arbusto", "capim-alto", "caixa-correio",
   "arvore-pinheiro", "arvore-lavanda", "arbusto-hortensia", "arbusto-frutinhas", "toco-cogumelos", "pedrinhas",
   "canteiro-flores", "placa-madeira", "lote-vazio", "ponte-madeira",
@@ -134,6 +134,9 @@ export class VillageScene extends Phaser.Scene {
     } });
     this.events.once("shutdown", off);
     this.place("caixa-correio", 7, 8);
+    // caixa de fotos na praça (onde ficam os commits) e poço no gramado da direita
+    this.place("caixa-de-fotos", 17, 13);
+    this.place("poco-dos-desejos", 24, 15);
 
     // praça: Pedra do Tempo, torre do relógio e postes
     // a base da pedra é desenhada em ângulo (termina em ponta): sombra larga sob o miolo da base pra ela assentar no chão
@@ -322,10 +325,12 @@ export class VillageScene extends Phaser.Scene {
       const kind = work.get(i) ?? (l.status === "ghost" ? index.get(i) ?? head.get(i) : undefined);
       const before = this.children.length;
       const bottom = lot.y + lot.h - 1;
-      l.img = kind ? this.place(SPRITE[kind] ?? "casa-madeira", lot.x, bottom, l.status === "ghost" ? 0 : 2, 0.95)
+      // no staging (depois do git add) a casa vira andaime: separada, mas ainda não salva; o commit a põe de pé
+      const staged = l.status === "stg";
+      l.img = kind ? this.place(staged ? "andaime" : SPRITE[kind] ?? "casa-madeira", lot.x, bottom, l.status === "ghost" ? 0 : 2, 0.95)
         : this.place("lote-vazio", lot.x, bottom, 0, 0);
       // moinho: a hélice é um sprite à parte, girando no eixo (px 50,46 do corpo); X e + alternando
-      if (kind === "moinho") {
+      if (kind === "moinho" && !staged) {
         if (!this.anims.exists("helice")) this.anims.create({ key: "helice", frames: this.anims.generateFrameNumbers("helice", { frames: [0, 1] }), frameRate: 2.5, repeat: -1 });
         const sails = this.add.sprite(l.img.x + 50, l.img.y - l.img.height + 46, "helice", 0).setDepth(l.img.depth + 1);
         if (l.status !== "ghost") sails.play("helice");
@@ -333,8 +338,7 @@ export class VillageScene extends Phaser.Scene {
       l.objs = this.children.list.slice(before);
       l.cells = [];
       this.solid.forEach((row, y) => row.forEach((v, x) => { if (v && !wasSolid[y][x]) l.cells.push([x, y]); }));
-      if (kind) { const dx = doorShift(kind, lot.x, l.img.width); l.objs.forEach(o => { (o as Phaser.GameObjects.Image).x += dx; }); }
-      if (l.status === "stg") l.img.setTint(0xb8f0c8);
+      if (kind) { const dx = doorShift(staged ? "andaime" : kind, lot.x, l.img.width); l.objs.forEach(o => { (o as Phaser.GameObjects.Image).x += dx; }); }
       if (l.status === "ghost") l.objs.forEach(o => { const im = o as Phaser.GameObjects.Image; im.setAlpha(im.alpha * 0.4); }); // sombras incluídas, na proporção
     });
   }

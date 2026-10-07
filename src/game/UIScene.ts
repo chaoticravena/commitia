@@ -201,7 +201,7 @@ export class UIScene extends Phaser.Scene {
     const pt = loadSettings().lang === "pt";
     const rows: [number, number, string][] = [
       [0xffa8c0, 1, pt ? "mudou: falta git add" : "changed: needs git add"],
-      [0xb8f0c8, 1, pt ? "pronta pro git commit" : "ready for git commit"],
+      [0xc79c7a, 1, pt ? "andaime: falta git commit" : "scaffold: needs git commit"],
       [0xc9b59e, 0.4, pt ? "apagada, Git ainda guarda" : "deleted, Git still has it"],
     ];
     const w = 14 + Math.max(...rows.map(r => r[2].length)) * 8 + 8, h = 8 + rows.length * 11, y0 = 25;

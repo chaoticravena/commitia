@@ -55,7 +55,7 @@ export class VillageScene extends Phaser.Scene {
   private solid: boolean[][] = [];
   private keys!: Record<Dir, Phaser.Input.Keyboard.Key[]>;
   private prof!: Phaser.GameObjects.Sprite;
-  private lots: { objs: Phaser.GameObjects.GameObject[]; img?: Phaser.GameObjects.Image; status: ItemStatus }[] = [];
+  private lots: { objs: Phaser.GameObjects.GameObject[]; img?: Phaser.GameObjects.Image; status: ItemStatus; cells: [number, number][] }[] = [];
   private queued: Dir | null = null; // toque rápido = um passo, mesmo se a tecla soltar antes do próximo frame
 
   constructor() { super("village"); }
@@ -124,7 +124,7 @@ export class VillageScene extends Phaser.Scene {
     }
 
     // casas nos lotes: desenhadas a partir do casas.txt e do estado de cada linha no Git
-    this.lots = LOTS.map(() => ({ objs: [], status: "ok" as ItemStatus }));
+    this.lots = LOTS.map(() => ({ objs: [], status: "ok" as ItemStatus, cells: [] }));
     this.renderLots();
     const off = store.on(() => this.renderLots());
     let blink = false; // "mod" pisca em rosa: mudança que o Git ainda não guardou
@@ -314,7 +314,10 @@ export class VillageScene extends Phaser.Scene {
     LOTS.forEach((lot, i) => {
       const l = this.lots[i];
       l.objs.forEach(o => o.destroy());
-      for (let y = lot.y; y < lot.y + lot.h; y++) for (let x = lot.x; x < lot.x + lot.w; x++) this.solid[y][x] = false;
+      // desmarca só o que esta casa marcou (casas largas passam do lote; limpar o lote inteiro deixava
+      // uma coluna presa, e limpar além dele apagaria a colisão dos vizinhos)
+      l.cells.forEach(([x, y]) => { this.solid[y][x] = false; });
+      const wasSolid = this.solid.map(row => [...row]);
       l.status = repo ? itemStatus(work, index, head, i) : "ok";
       const kind = work.get(i) ?? (l.status === "ghost" ? index.get(i) ?? head.get(i) : undefined);
       const before = this.children.length;
@@ -328,6 +331,8 @@ export class VillageScene extends Phaser.Scene {
         if (l.status !== "ghost") sails.play("helice");
       }
       l.objs = this.children.list.slice(before);
+      l.cells = [];
+      this.solid.forEach((row, y) => row.forEach((v, x) => { if (v && !wasSolid[y][x]) l.cells.push([x, y]); }));
       if (kind) { const dx = doorShift(kind, lot.x, l.img.width); l.objs.forEach(o => { (o as Phaser.GameObjects.Image).x += dx; }); }
       if (l.status === "stg") l.img.setTint(0xb8f0c8);
       if (l.status === "ghost") l.objs.forEach(o => { const im = o as Phaser.GameObjects.Image; im.setAlpha(im.alpha * 0.4); }); // sombras incluídas, na proporção

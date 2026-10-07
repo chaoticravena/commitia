@@ -13,7 +13,7 @@ export type GameEvent =
 const SAVE = "commitia:save";
 const fresh = () => ({ ws: { work: { ...STARTING_FILES }, repo: null } as Workspace, history: [] as string[], progress: { talked: false, visitedPast: false } as Progress });
 
-class Store extends EventTarget {
+export class Store extends EventTarget {
   ws = fresh().ws;
   history = fresh().history;
   progress = fresh().progress;

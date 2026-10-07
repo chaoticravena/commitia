@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { centerText, loadSettings, settingsItems, sfxVolume, woodButton, type MenuItem } from "./settings.ts";
+import { centerText, uiZoom, loadSettings, settingsItems, sfxVolume, woodButton, type MenuItem } from "./settings.ts";
 import { playMusic } from "./music.ts";
 import { STEPS, currentStep } from "./act1.ts";
 import { grimoire } from "./grimoire.ts";
@@ -99,7 +99,7 @@ export class UIScene extends Phaser.Scene {
 
   // mesmo zoom inteiro da vila; caixa centralizada embaixo
   private layout() {
-    const z = Math.max(1, Math.floor(Math.min(this.scale.width / 320, this.scale.height / 180)));
+    const z = uiZoom(Math.max(1, Math.floor(Math.min(this.scale.width / 320, this.scale.height / 180))));
     this.cameras.main.setZoom(z).setOrigin(0, 0).setRoundPixels(true);
     const W = Math.floor(this.scale.width / z), H = Math.floor(this.scale.height / z);
     this.box.setPosition(Math.round((W - BOX_W) / 2), H - BOX_H - 6);
@@ -121,6 +121,7 @@ export class UIScene extends Phaser.Scene {
     });
     this.onDone = onDone;
     this.box.setVisible(true);
+    grimoire.showButton(false); // a caixa de diálogo ocupa a faixa de baixo
     this.next();
   }
 
@@ -235,6 +236,7 @@ export class UIScene extends Phaser.Scene {
     const page = this.queue.shift();
     if (page === undefined) {
       this.box.setVisible(false);
+      grimoire.showButton(true);
       const done = this.onDone; this.onDone = undefined;
       done?.();
       return this.refreshGoal();

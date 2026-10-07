@@ -18,6 +18,10 @@ export function loadSettings(): Settings {
 export function saveSettings(s: Settings) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* sem storage: vale só nesta sessão */ } }
 
 // volume dos efeitos (0..1), pra multiplicar no volume de cada som
+// Zoom da interface (texto, diálogo, grimório): um degrau inteiro abaixo do zoom do mundo a partir
+// de 3x, pra letra não ficar enorme; continua inteiro, então os pixels seguem nítidos.
+export const uiZoom = (worldZoom: number) => (worldZoom >= 3 ? worldZoom - 1 : worldZoom);
+
 export const sfxVolume = () => loadSettings().sfx / 10;
 
 // Peças visuais compartilhadas pelo título e pela pausa

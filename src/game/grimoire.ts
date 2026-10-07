@@ -2,7 +2,7 @@
 // (digitar, acentos, aspas, colar e histórico funcionam como em qualquer campo de texto), vestido de
 // livro de pergaminho na mesma fonte pixelada e no mesmo tamanho de pixel do jogo.
 import type { Kind } from "../git/commands.ts"; // "why" é a explicação depois do comando
-import { loadSettings } from "./settings.ts";
+import { loadSettings, uiZoom } from "./settings.ts";
 import { store } from "./store.ts";
 import { nextHint } from "./act1.ts";
 
@@ -91,7 +91,7 @@ class Grimoire extends EventTarget {
     document.body.append(this.el, this.btn);
 
     const size = () => {
-      const z = Math.max(1, Math.floor(Math.min(innerWidth * devicePixelRatio / 320, innerHeight * devicePixelRatio / 180)));
+      const z = uiZoom(Math.max(1, Math.floor(Math.min(innerWidth * devicePixelRatio / 320, innerHeight * devicePixelRatio / 180))));
       const px = z / devicePixelRatio; // 1 pixel do jogo em px de CSS
       document.documentElement.style.setProperty("--px", `${px}px`);
       document.documentElement.style.setProperty("--px8", `${8 * px}px`);

@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { playMusic } from "./music.ts";
-import { LINKS, openLink, centerText, loadSettings, settingsItems, woodButton, type MenuItem } from "./settings.ts";
+import { LINKS, openLink, centerText, uiZoom, loadSettings, settingsItems, woodButton, type MenuItem } from "./settings.ts";
 import { store } from "./store.ts";
 import { CHARS, type CharKey } from "./VillageScene.ts";
 
@@ -50,6 +50,9 @@ type State = "menu" | "chars" | "settings" | "help";
 
 export class TitleScene extends Phaser.Scene {
   private W = 320;
+  private uw = 320; // tamanho da área dos textos (câmera da interface, zoom menor)
+  private uh = 180;
+  private uiCam!: Phaser.Cameras.Scene2D.Camera;
   private H = 180;
   private state: State = "menu";
   private sel = 0;
@@ -94,6 +97,19 @@ export class TitleScene extends Phaser.Scene {
     this.birds();
 
     this.ui = this.add.container(0, 0).setDepth(10);
+    // Textos e botões numa câmera própria, com o zoom menor da interface: letra menor sem encolher
+    // o céu, as árvores e a logo. A câmera principal não vê o menu; a do menu só vê o menu.
+    const uz = uiZoom(z);
+    this.uw = Math.ceil(this.scale.width / uz);
+    this.uh = Math.ceil(this.scale.height / uz);
+    this.uiCam = this.cameras.add(0, 0, this.scale.width, this.scale.height).setZoom(uz).setOrigin(0, 0).setRoundPixels(true);
+    cam.ignore(this.ui);
+    this.children.list.forEach(o => { if (o !== this.ui) this.uiCam.ignore(o); });
+    // tudo que nascer depois (nuvens, passarinhos, brilhos) é do mundo, não do menu
+    const worldOnly = (o: Phaser.GameObjects.GameObject) => { if (o !== this.ui && o.parentContainer !== this.ui) this.uiCam.ignore(o); };
+    this.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, worldOnly);
+    this.events.once("shutdown", () => this.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, worldOnly)); // a cena reinicia ao mudar o tamanho
+    this.ui.cameraFilter = cam.id; // o menu: escondido só da câmera do mundo
     const logo = this.logo = this.add.image(Math.round(W / 2), Math.round(H * 0.24), "logo-commitia").setDepth(9);
     // clicar na logo: pulinho com quique e brilhos de pixel saindo de trás dela
     if (!this.textures.exists("twinkle")) {
@@ -250,7 +266,7 @@ export class TitleScene extends Phaser.Scene {
 
   private draw() {
     this.ui.removeAll(true);
-    const { W, H } = this;
+    const W = this.uw, H = this.uh; // coordenadas da câmera do menu
     const items = this.items();
     const cy = Math.round(H * 0.62);
     const hit = (obj: Phaser.GameObjects.GameObject, i: number, w: number, h: number, x: number, y: number) => {
@@ -316,5 +332,7 @@ export class TitleScene extends Phaser.Scene {
         this.ui.add(this.text(W / 2, y + h / 2, it.label));
       });
     }
+    // os objetos do menu nascem na cena antes de entrar no container: libera pra câmera do menu
+    this.ui.each((o: Phaser.GameObjects.GameObject) => { o.cameraFilter &= ~this.uiCam.id; });
   }
 }

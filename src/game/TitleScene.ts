@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { playMusic } from "./music.ts";
 import { LINKS, openLink, centerText, uiZoom, loadSettings, settingsItems, woodButton, type MenuItem } from "./settings.ts";
 import { store } from "./store.ts";
-import { CHARS, type CharKey } from "./VillageScene.ts";
+import { CHARS } from "./VillageScene.ts";
 
 // Tela de título no espírito do Stardew: a câmera sobe do campo até o céu, nuvens passando,
 // passarinhos, a logo cai com um quique e aparecem os botões de madeira.
@@ -46,7 +46,7 @@ const STR = {
   },
 };
 
-type State = "menu" | "chars" | "settings" | "help";
+type State = "menu" | "settings" | "help";
 
 export class TitleScene extends Phaser.Scene {
   private W = 320;
@@ -223,12 +223,11 @@ export class TitleScene extends Phaser.Scene {
       // com jogo salvo: Continuar volta pra vila do jeito que estava; Novo jogo apaga e recomeça
       ...(store.hasSave
         ? [{ label: t.resume, act: () => this.scene.start("village", { char: store.char }) },
-           { label: t.newGame, act: () => { store.reset(); this.go("chars"); } }]
-        : [{ label: t.start, act: () => this.go("chars") }]),
+           { label: t.newGame, act: () => { store.reset(); this.scene.start("village"); } }]
+        : [{ label: t.start, act: () => this.scene.start("village") }]),
       { label: t.help, act: () => this.go("help") },
       { label: t.settings, act: () => this.go("settings") },
     ];
-    if (this.state === "chars") return (Object.keys(CHARS) as CharKey[]).map(k => ({ label: CHARS[k].name, act: () => this.scene.start("village", { char: k }) }));
     if (this.state === "help") return [{ label: t.back, act: () => this.go("menu") }];
     return [...settingsItems(this, () => this.draw(), () => playMusic(this, "musica-titulo")), { label: t.back, act: () => this.go("menu") }];
   }
@@ -238,7 +237,7 @@ export class TitleScene extends Phaser.Scene {
   private key(k: string) {
     if (!this.ui.length) return; // ainda na abertura
     const n = this.items().length;
-    const horizontal = this.state === "chars";
+    const horizontal = false; // menus são todos verticais (a escolha de personagem saiu: a Josi é a única)
     if (k === (horizontal ? "ArrowRight" : "ArrowDown") || k === (horizontal ? "d" : "s")) this.sel = (this.sel + 1) % n;
     else if (k === (horizontal ? "ArrowLeft" : "ArrowUp") || k === (horizontal ? "a" : "w")) this.sel = (this.sel + n - 1) % n;
     else if (k === "Enter" || k === " ") return this.items()[this.sel].act();
@@ -309,21 +308,6 @@ export class TitleScene extends Phaser.Scene {
         this.ui.add([l, line]);
         lx += l.width + 12;
       }
-    } else if (this.state === "chars") {
-      this.ui.add(this.text(W / 2, cy - 14, this.t.pick));
-      const w = 56, h = 68, gap = 12, x0 = Math.round(W / 2 - (items.length * w + gap) / 2);
-      (Object.keys(CHARS) as CharKey[]).forEach((k, i) => {
-        const x = x0 + i * (w + gap), y = cy - 4;
-        hit(this.button(x, y, w, h, this.sel === i), i, w, h, x, y);
-        // personagem em 2x (escala inteira) andando de frente; o não escolhido fica parado
-        const spr = this.add.sprite(x + w / 2, y + 50, k, 0).setOrigin(0.5, 1).setScale(2);
-        if (this.sel === i) {
-          if (!this.anims.exists(`${k}-title`)) this.anims.create({ key: `${k}-title`, frames: this.anims.generateFrameNumbers(k, { frames: [0, 1, 2, 3] }), frameRate: 6, repeat: -1 });
-          spr.play(`${k}-title`);
-        }
-        this.ui.add([spr, this.text(x + w / 2, y + h - 9, CHARS[k].name)]);
-      });
-      this.ui.add(this.text(W / 2, H - 8, this.t.pickHint));
     } else {
       const w = 192, h = 14, gap = 4;
       items.forEach((it, i) => {

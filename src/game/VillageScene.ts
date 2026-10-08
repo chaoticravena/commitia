@@ -40,11 +40,11 @@ const IMAGES = [
 const FLOWERING = ["arvore-florida", "arvore-lavanda"];
 
 // personagens jogáveis: chave da textura -> nome e folha de caminhada
-export const CHARS = { helena: { name: "Lena", sheet: "helena-andando" }, dudu: { name: "Dudu", sheet: "dudu-andando" } };
+export const CHARS = { josi: { name: "Josi", sheet: "josi-andando" } }; // personagem única
 export type CharKey = keyof typeof CHARS;
 
 export class VillageScene extends Phaser.Scene {
-  private char: CharKey = "helena";
+  private char: CharKey = "josi";
   private player!: Phaser.GameObjects.Sprite;
   private buddy!: Phaser.GameObjects.Sprite;
   private dirt = dirtGrid();
@@ -61,7 +61,7 @@ export class VillageScene extends Phaser.Scene {
   constructor() { super("village"); }
 
   init(data: { char?: CharKey }) {
-    this.char = data.char ?? "helena";
+    this.char = "josi"; // saves antigos (Lena/Dudu) também viram Josi
     this.tile = { x: 15, y: 17 };
     this.facing = "up";
     this.moving = false;

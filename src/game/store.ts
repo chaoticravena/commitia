@@ -17,7 +17,7 @@ export class Store extends EventTarget {
   ws = fresh().ws;
   history = fresh().history;
   progress = fresh().progress;
-  char = "helena";
+  char = "josi";
 
   constructor() { super(); this.load(); }
 
